@@ -35,7 +35,7 @@ class Database:
             transaction_id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
             vault_id INTEGER NOT NULL,
-            type TEXT NOT NULL,
+            transaction_type TEXT NOT NULL,
             amount REAL NOT NULL,         -- The amount of money spent
             category_id INTEGER NOT NULL,
             description TEXT NOT NULL,    -- General purpose for what was bought or paid for
@@ -120,26 +120,28 @@ class Database:
     
     #vaults
     def get_vault_id(self,vault_name):
-        self.c.execute("SELECT vault_id FROM vaults WHERE vault_name = ?", (vault_name))
+        self.c.execute("SELECT vault_id FROM vaults WHERE vault_name = ?", (vault_name,))
         vault_id = self.c.fetchone()[0]
         return vault_id
     def vault_exists(self,username,vault_name):
         #check if vault exists
         username = str(username)
         username = username.capitalize()
-        self.c.execute("SELECT * FROM vaults WHERE username = ? AND vault_name = ?",
-                        (username, vault_name))
+        user_id = self.get_user_id(username)
+        self.c.execute("SELECT * FROM vaults WHERE user_id = ? AND vault_name = ?",
+                        (user_id, vault_name))
         vault = self.c.fetchone()
         return vault
     def add_vault(self,username,vault_name):
         username = str(username)
         username = username.capitalize()
+        user_id = self.get_user_id(username)
         #adds vault if it doesnt exist already
         vault_name = vault_name.capitalize() #Make sure all vault names start with capital letter
         if self.vault_exists(username,vault_name):
             return False
-        self.c.execute("INSERT INTO vaults (username,vault_name,balance) VALUES (?,?,0)",
-                       (username,vault_name))
+        self.c.execute("INSERT INTO vaults (user_id,vault_name,balance) VALUES (?,?,0)",
+                       (user_id,vault_name))
         self.conn.commit()
         return True
     def remove_vault(self,username,vault_name):
@@ -150,27 +152,31 @@ class Database:
     def vault_has_balance(self,username,vault_name,amount):
         username = str(username)
         username = username.capitalize()
-        self.c.execute("SELECT balance FROM vaults WHERE username = ? AND vault_name = ?",(username,vault_name))
+        user_id = self.get_user_id(username)
+        self.c.execute("SELECT balance FROM vaults WHERE user_id = ? AND vault_name = ?",(user_id,vault_name))
         balance = self.c.fetchone()[0]
         return balance>=amount
     def add_to_vault(self,username,vault_name,amount):
         username = str(username)
         username = username.capitalize()
-        self.c.execute("UPDATE vaults SET balance = balance + ? WHERE username = ? AND vault_name = ?",
-                    (amount, username,vault_name)) 
+        user_id = self.get_user_id(username)
+        self.c.execute("UPDATE vaults SET balance = balance + ? WHERE user_id = ? AND vault_name = ?",
+                    (amount, user_id,vault_name)) 
         return True
     def remove_from_vault(self,username,vault_name,amount):
         username = str(username)
         username = username.capitalize()
         if not self.vault_has_balance(username,vault_name,amount):
             return False
-        self.c.execute("UPDATE vaults SET balance = balance - ? WHERE username = ? AND vault_name = ?",
-                    (amount, username,vault_name)) 
+        user_id = self.get_user_id(username)
+        self.c.execute("UPDATE vaults SET balance = balance - ? WHERE user_id = ? AND vault_name = ?",
+                    (amount, user_id,vault_name)) 
         return True
     def get_user_vault_names(self,username):
         username = str(username)
         username = username.capitalize()
-        self.c.execute("SELECT vault_name FROM vaults WHERE username = ?",(username))
+        user_id = self.get_user_id(username)
+        self.c.execute("SELECT vault_name FROM vaults WHERE user_id = ?",(user_id,))
         vaults = self.c.fetchall()
         vault_names = []
         for vault in vaults:
@@ -179,7 +185,8 @@ class Database:
     def get_user_vaults(self,username):
         username = str(username)
         username = username.capitalize()
-        self.c.execute("SELECT (vault_name,balance) FROM vaults WHERE username = ?",(username))
+        user_id = self.get_user_id(username)
+        self.c.execute("SELECT (vault_name,balance) FROM vaults WHERE user_id = ?",(user_id,))
         vaults = self.c.fetchall()
         return dict(vaults)
     #transactions
@@ -189,22 +196,23 @@ class Database:
         category_id = self.get_category_id(category)
         unit_id = self.get_unit_id(unit)
         self.c.execute('''INSERT INTO transactions 
-                       (user_id, vault_id, transaction_type,amount,category_id, desctription, quantity,unit_id,date)
+                       (user_id, vault_id, transaction_type,amount,category_id, description, quantity,unit_id,date)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
                   ''', 
                 (user_id,vault_id,transaction_type,amount,category_id,description.lower(),quantity,unit_id))
+        self.conn.commit()
         return True
 
     #categories
     def get_category_id(self,category):
-        self.c.execute("SELECT category_id FROM categories WHERE category = ?",(category,))
+        self.c.execute("SELECT category_id FROM categories WHERE category_name = ?",(category,))
         category_id = self.c.fetchone()[0]
         return category_id
     #units
-    def get_unit_id(self,unit):
-        if not unit:
+    def get_unit_id(self,unit_name):
+        if not unit_name:
             return None
-        self.c.execute("SELECT unit_id FROM unitss WHERE unit = ?",(unit,))
+        self.c.execute("SELECT unit_id FROM units WHERE unit_name = ?",(unit_name,))
         unit_id = self.c.fetchone()[0]
         return unit_id
     #services

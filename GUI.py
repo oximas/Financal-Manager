@@ -140,7 +140,7 @@ class GUI:
 
         chosen_vault = StringVar(self.master)
         chosen_vault.set("Main")
-        self.vault_options = OptionMenu(self.master,chosen_vault,*self.db.get_user_vault_names())
+        self.vault_options = OptionMenu(self.master,chosen_vault,*self.db.get_user_vault_names(self.username))
         self.vault_options.pack(pady=2)
 
         self.submit_button = Button(self.master, text=transaction_type, command=lambda: self.process_transaction(transaction_type,chosen_vault.get()))
@@ -150,7 +150,13 @@ class GUI:
         self.back_button.pack(pady=2)
 
     def process_transaction(self, transaction_type,vault):
-        pass
+        if(transaction_type=="Withdraw"):
+            self.db.withdraw(self.username,vault,60,"Food","Eggs",10,"Pieces")
+        elif(transaction_type=="Deposit"):
+            self.db.deposit(self.username,vault,1000,"Wage","Job")
+            print("depsited a 1000 to Main vault in category Wage(Job)")
+        else:
+            raise ValueError("transaction type must be 'Withdraw' or 'Deposit' ")
 
 
     def transfer_menu(self):
@@ -164,7 +170,7 @@ class GUI:
         self.from_vault_label.grid(row=0,column=0, padx=5)
         from_vault = StringVar(self.master)
         from_vault.set("Main")
-        self.from_vault_options = OptionMenu(self.master,from_vault,*self.db.get_user_vault_names())
+        self.from_vault_options = OptionMenu(self.master,from_vault,*self.db.get_user_vault_names(self.username))
         self.from_vault_options.grid(row=0,column=1)
 
         self.to_user_label = Label(self.master, text="To user:")
@@ -178,7 +184,7 @@ class GUI:
         self.to_vault_label.grid(row=2,column=0, padx=5)
         to_vault = StringVar(self.master)
         to_vault.set("Main")
-        self.to_vault_options = OptionMenu(self.master,to_vault,*self.db.get_user_vault_names())
+        self.to_vault_options = OptionMenu(self.master,to_vault,*self.db.get_user_vault_names(self.username))
         self.to_vault_options.grid(row=2,column=1)
 
         self.amount_label = Label(self.master, text="Amount:")
