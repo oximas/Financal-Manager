@@ -40,11 +40,12 @@ class Database:
             category_id INTEGER NOT NULL,
             description TEXT NOT NULL,    -- General purpose for what was bought or paid for
             quantity REAL,                -- Quantity of the item or service
-            unit TEXT,                    -- The unit of measurement (e.g., "kg", "pcs", "service")
+            unit_id  INTEGER NOT NULL,                    -- The unit of measurement (e.g., "kg", "pcs")
             date TEXT NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users (user_id),
             FOREIGN KEY (vault_id) REFERENCES vaults (vault_id),
             FOREIGN KEY (category_id) REFERENCES categories (category_id)
+            FOREIGN KEY (unit_id) REFERENCES units (unit_id)
         )
         ''')
         # Create loan table
@@ -65,6 +66,13 @@ class Database:
             category_name TEXT NOT NULL UNIQUE
         )
         ''')
+
+        self.c.execute('''
+            CREATE TABLE IF NOT EXISTS units (
+                unit_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                unit_name TEXT NOT NULL UNIQUE
+            );
+        ''')
         self.conn.commit()
 
     def close(self):
@@ -77,6 +85,8 @@ class Database:
         self.c.execute("SELEC user_id form users WHERE username = ?",(username))
         user_id = self.c.fetchone()[0]
         return user_id
+    def get_usernames(self):
+        self.c.execute("SELECT u")
     def user_exists(self,username):
         #check if user exists
         self.c.execute("SELECT * FROM users WHERE username = ? ", 
@@ -87,7 +97,7 @@ class Database:
         self.c.execute("SELECT * FROM users WHERE username = ? AND password = ?", 
                        (username,password))
         hasPassword = self.c.fetchone()
-        return hasPassword
+        return bool(hasPassword)
     def add_user(self,username,password=None):
         #adds user if it doesnt exist already
         if self.user_exists(username,password):
