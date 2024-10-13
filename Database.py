@@ -1,4 +1,3 @@
-from pickle import NONE
 import sqlite3
 class Database:
     def __init__(self, db_name='financial_manager2.db'):
