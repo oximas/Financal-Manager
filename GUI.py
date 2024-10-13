@@ -5,9 +5,9 @@ from Database import Database as DB
 # GUI Interface
 class GUI:
     def __init__(self, master):
-        self.usernames = ["bob"]
-        self.username = "bob"
-        self.vault_names = ["vault"]
+
+        self.db = DB("personal_financial_manager.db")
+
         self.master = master
         self.master.title("Finance Manager")
         self.master.geometry("400x300")
@@ -38,7 +38,8 @@ class GUI:
         self.password_entry = Entry(self.master, show="*")
         self.password_entry.pack(pady=2)
 
-        self.login_button = Button(self.master, text="Login", command=self.login)
+        self.login_button = Button(self.master, text="Login", command=lambda : self.login(self.username_entry.get()
+                                                                                          ,self.password_entry.get()))
         self.login_button.pack(pady=10)
 
         self.back_button = Button(self.master, text="Back", command=self.main_menu)
@@ -64,16 +65,31 @@ class GUI:
         self.confirm_password_entry = Entry(self.master, show="*")
         self.confirm_password_entry.pack(pady=2)
 
-        self.signup_button = Button(self.master, text="Sign Up", command=self.signup)
+        self.signup_button = Button(self.master, text="Sign Up", command=lambda : self.signup(self.username_entry.get(),
+                                                                                              self.password_entry.get(),
+                                                                                              self.confirm_password_entry.get()))
         self.signup_button.pack(pady=10)
 
         self.back_button = Button(self.master, text="Back", command=self.main_menu)
         self.back_button.pack(pady=2)
 
-    def login(self):
-        self.user_menu()
+    def login(self,username,password):
+        correct_password = self.db.check_user_password(username,password)
+        if correct_password:
+            self.username=username
+            self.user_menu()
+        else:
+            messagebox.showerror("Incorect login info","your username and password don't match")
 
-    def signup(self):
+    def signup(self,username,password,check_password):
+        if(password!=check_password):
+            messagebox.showerror("password error","both passwords must match")
+            return
+        if(self.db.user_exists(username)):
+             messagebox.showerror("dublicate username","username already exists")
+             return
+        self.db.add_user(username,password)
+        self.username=username
         self.user_menu()
 
     def user_menu(self):
@@ -124,7 +140,7 @@ class GUI:
 
         chosen_vault = StringVar(self.master)
         chosen_vault.set("Main")
-        self.vault_options = OptionMenu(self.master,chosen_vault,*self.vault_names)
+        self.vault_options = OptionMenu(self.master,chosen_vault,*self.db.get_user_vault_names())
         self.vault_options.pack(pady=2)
 
         self.submit_button = Button(self.master, text=transaction_type, command=lambda: self.process_transaction(transaction_type,chosen_vault.get()))
@@ -148,21 +164,21 @@ class GUI:
         self.from_vault_label.grid(row=0,column=0, padx=5)
         from_vault = StringVar(self.master)
         from_vault.set("Main")
-        self.from_vault_options = OptionMenu(self.master,from_vault,*self.vault_names)
+        self.from_vault_options = OptionMenu(self.master,from_vault,*self.db.get_user_vault_names())
         self.from_vault_options.grid(row=0,column=1)
 
         self.to_user_label = Label(self.master, text="To user:")
         self.to_user_label.grid(row=1,column=0, padx=5)
         to_user = StringVar(self.master)
         to_user.set(self.username)
-        self.to_user_options = OptionMenu(self.master,to_user,*self.usernames)
+        self.to_user_options = OptionMenu(self.master,to_user,*self.db.get_usernames())
         self.to_user_options.grid(row=1,column=1)
 
         self.to_vault_label = Label(self.master, text="To vault:")
         self.to_vault_label.grid(row=2,column=0, padx=5)
         to_vault = StringVar(self.master)
         to_vault.set("Main")
-        self.to_vault_options = OptionMenu(self.master,to_vault,*self.vault_names)
+        self.to_vault_options = OptionMenu(self.master,to_vault,*self.db.get_user_vault_names())
         self.to_vault_options.grid(row=2,column=1)
 
         self.amount_label = Label(self.master, text="Amount:")
