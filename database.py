@@ -82,25 +82,33 @@ class Database:
 
     #users
     def get_user_id(self,username):
-        self.c.execute("SELEC user_id form users WHERE username = ?",(username))
+        username = str(username)
+        username = username.capitalize()
+        self.c.execute("SELECT user_id FROM users WHERE username = ?",(username,))
         user_id = self.c.fetchone()[0]
         return user_id
     def get_usernames(self):
         self.c.execute("SELECT u")
     def user_exists(self,username):
         #check if user exists
+        username = str(username)
+        username = username.capitalize()
         self.c.execute("SELECT * FROM users WHERE username = ? ", 
-                       (username))
+                       (username,))
         user = self.c.fetchone()
         return user
     def check_user_password(self,username,password):
+        username = str(username)
+        username = username.capitalize()
         self.c.execute("SELECT * FROM users WHERE username = ? AND password = ?", 
                        (username,password))
         hasPassword = self.c.fetchone()
         return bool(hasPassword)
     def add_user(self,username,password=None):
         #adds user if it doesnt exist already
-        if self.user_exists(username,password):
+        username = str(username)
+        username = username.capitalize()
+        if self.user_exists(username):
             return False
         self.c.execute("INSERT INTO users (username, password) VALUES (?, ?)", 
                        (username, password))
