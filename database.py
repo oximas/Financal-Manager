@@ -196,10 +196,17 @@ class Database:
         return True
 
     #categories
-    def get_category_id(self,username):
-        self.c.execute("SELEC user_id form users WHERE username = ?")
-        user_id = self.c.fetchone()[0]
-        return user_id
+    def get_category_id(self,category):
+        self.c.execute("SELECT category_id FROM categories WHERE category = ?",(category,))
+        category_id = self.c.fetchone()[0]
+        return category_id
+    #units
+    def get_unit_id(self,unit):
+        if not unit:
+            return None
+        self.c.execute("SELECT unit_id FROM unitss WHERE unit = ?",(unit,))
+        unit_id = self.c.fetchone()[0]
+        return unit_id
     #services
     def deposit(self,username,vault_name,amount,category_name,description,quantity=None,unit=None):
         self.add_to_vault(username,vault_name,amount)
