@@ -183,13 +183,16 @@ class Database:
         vaults = self.c.fetchall()
         return dict(vaults)
     #transactions
-    def add_transaction(self,user_id,vault_id,transaction_type,amount,category_id,description,quantity=None,unit=None):
-
+    def add_transaction(self,username,vault_name,transaction_type,amount,category,description,quantity=None,unit=None):
+        user_id = self.get_user_id(username)
+        vault_id = self.get_vault_id(vault_name)
+        category_id = self.get_category_id(category)
+        unit_id = self.get_unit_id(unit)
         self.c.execute('''INSERT INTO transactions 
-                       (user_id, vault_id, transaction_type,amount,category_id, desctription, quantity,unit,date)
+                       (user_id, vault_id, transaction_type,amount,category_id, desctription, quantity,unit_id,date)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
                   ''', 
-                (user_id,vault_id,transaction_type,amount,category_id,description,quantity,unit))
+                (user_id,vault_id,transaction_type,amount,category_id,description,quantity,unit_id))
         return True
 
     #categories
@@ -200,18 +203,10 @@ class Database:
     #services
     def deposit(self,username,vault_name,amount,category_name,description,quantity=None,unit=None):
         self.add_to_vault(username,vault_name,amount)
-
-        user_id = self.get_user_id(username)
-        vault_id = self.get_vault_id(vault_name)
-        category_id = self.get_category_id(category_name)
-        self.add_transaction(user_id,vault_id,"Deposit",amount,category_id,description,quantity,unit)
+        self.add_transaction(username,vault_name,"Deposit",amount,category_name,description,quantity,unit)
         return True
     def withdraw(self,username,vault_name,amount,category_name,description,quantity=None,unit=None):
         self.remove_from_vault(username,vault_name,amount)
-
-        user_id = self.get_user_id(username)
-        vault_id = self.get_vault_id(vault_name)
-        category_id = self.get_category_id(category_name)
-        self.add_transaction(user_id,vault_id,"Withdraw",-amount,category_id,description,quantity,unit)
+        self.add_transaction(username,vault_name,"Withdraw",-amount,category_name,description,quantity,unit)
         return True
     
