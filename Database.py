@@ -193,7 +193,7 @@ class Database:
                        (user_id, vault_id, transaction_type,amount,category_id, desctription, quantity,unit_id,date)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
                   ''', 
-                (user_id,vault_id,transaction_type,amount,category_id,description,quantity,unit_id))
+                (user_id,vault_id,transaction_type,amount,category_id,description.lower(),quantity,unit_id))
         return True
 
     #categories
