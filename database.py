@@ -112,14 +112,15 @@ class Database:
             return False
         self.c.execute("INSERT INTO users (username, password) VALUES (?, ?)", 
                        (username, password))
-        self.c.execute("INSERT INTO vaults (username,vault_name,balance) VALUES (?,?,0)",
-                       (username,"Main"))
+        user_id = self.get_user_id(username)
+        self.c.execute("INSERT INTO vaults (user_id,vault_name,balance) VALUES (?,?,0)",
+                       (user_id,"Main"))
         self.conn.commit()
         return True
     
     #vaults
     def get_vault_id(self,vault_name):
-        self.c.execute("SELEC vault_id form vaults WHERE vault_name = ?", (vault_name))
+        self.c.execute("SELECT vault_id FROM vaults WHERE vault_name = ?", (vault_name))
         vault_id = self.c.fetchone()[0]
         return vault_id
     def vault_exists(self,username,vault_name):
