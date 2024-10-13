@@ -1,3 +1,4 @@
+from pickle import NONE
 import sqlite3
 class Database:
     def __init__(self, db_name='financial_manager2.db'):
@@ -40,7 +41,7 @@ class Database:
             category_id INTEGER NOT NULL,
             description TEXT NOT NULL,    -- General purpose for what was bought or paid for
             quantity REAL,                -- Quantity of the item or service
-            unit_id  INTEGER NOT NULL,                    -- The unit of measurement (e.g., "kg", "pcs")
+            unit_id  INTEGER,                    -- The unit of measurement (e.g., "kg", "pcs")
             date TEXT NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users (user_id),
             FOREIGN KEY (vault_id) REFERENCES vaults (vault_id),
@@ -82,45 +83,58 @@ class Database:
 
     #users
     def get_user_id(self,username):
-        self.c.execute("SELEC user_id form users WHERE username = ?",(username))
+        username = str(username)
+        username = username.capitalize()
+        self.c.execute("SELECT user_id FROM users WHERE username = ?",(username,))
         user_id = self.c.fetchone()[0]
         return user_id
     def get_usernames(self):
         self.c.execute("SELECT u")
     def user_exists(self,username):
         #check if user exists
+        username = str(username)
+        username = username.capitalize()
         self.c.execute("SELECT * FROM users WHERE username = ? ", 
-                       (username))
+                       (username,))
         user = self.c.fetchone()
         return user
     def check_user_password(self,username,password):
+        username = str(username)
+        username = username.capitalize()
         self.c.execute("SELECT * FROM users WHERE username = ? AND password = ?", 
                        (username,password))
         hasPassword = self.c.fetchone()
         return bool(hasPassword)
     def add_user(self,username,password=None):
         #adds user if it doesnt exist already
-        if self.user_exists(username,password):
+        username = str(username)
+        username = username.capitalize()
+        if self.user_exists(username):
             return False
         self.c.execute("INSERT INTO users (username, password) VALUES (?, ?)", 
                        (username, password))
-        self.c.execute("INSERT INTO vaults (username,vault_name,balance) VALUES (?,?,0)",
-                       (username,"Main"))
+        user_id = self.get_user_id(username)
+        self.c.execute("INSERT INTO vaults (user_id,vault_name,balance) VALUES (?,?,0)",
+                       (user_id,"Main"))
         self.conn.commit()
         return True
     
     #vaults
     def get_vault_id(self,vault_name):
-        self.c.execute("SELEC vault_id form vaults WHERE vault_name = ?", (vault_name))
+        self.c.execute("SELECT vault_id FROM vaults WHERE vault_name = ?", (vault_name))
         vault_id = self.c.fetchone()[0]
         return vault_id
     def vault_exists(self,username,vault_name):
         #check if vault exists
+        username = str(username)
+        username = username.capitalize()
         self.c.execute("SELECT * FROM vaults WHERE username = ? AND vault_name = ?",
                         (username, vault_name))
         vault = self.c.fetchone()
         return vault
     def add_vault(self,username,vault_name):
+        username = str(username)
+        username = username.capitalize()
         #adds vault if it doesnt exist already
         vault_name = vault_name.capitalize() #Make sure all vault names start with capital letter
         if self.vault_exists(username,vault_name):
@@ -135,20 +149,28 @@ class Database:
         # also the Main vault can't be deleted and all vault names start with a capital letter
         pass
     def vault_has_balance(self,username,vault_name,amount):
+        username = str(username)
+        username = username.capitalize()
         self.c.execute("SELECT balance FROM vaults WHERE username = ? AND vault_name = ?",(username,vault_name))
         balance = self.c.fetchone()[0]
         return balance>=amount
     def add_to_vault(self,username,vault_name,amount):
+        username = str(username)
+        username = username.capitalize()
         self.c.execute("UPDATE vaults SET balance = balance + ? WHERE username = ? AND vault_name = ?",
                     (amount, username,vault_name)) 
         return True
     def remove_from_vault(self,username,vault_name,amount):
+        username = str(username)
+        username = username.capitalize()
         if not self.vault_has_balance(username,vault_name,amount):
             return False
         self.c.execute("UPDATE vaults SET balance = balance - ? WHERE username = ? AND vault_name = ?",
                     (amount, username,vault_name)) 
         return True
     def get_user_vault_names(self,username):
+        username = str(username)
+        username = username.capitalize()
         self.c.execute("SELECT vault_name FROM vaults WHERE username = ?",(username))
         vaults = self.c.fetchall()
         vault_names = []
@@ -156,39 +178,43 @@ class Database:
             vault_names += [vault[0]]
         return vault_names
     def get_user_vaults(self,username):
+        username = str(username)
+        username = username.capitalize()
         self.c.execute("SELECT (vault_name,balance) FROM vaults WHERE username = ?",(username))
         vaults = self.c.fetchall()
         return dict(vaults)
     #transactions
-    def add_transaction(self,user_id,vault_id,transaction_type,amount,category_id,description,quantity=None,unit=None):
-
+    def add_transaction(self,username,vault_name,transaction_type,amount,category,description,quantity=None,unit=None):
+        user_id = self.get_user_id(username)
+        vault_id = self.get_vault_id(vault_name)
+        category_id = self.get_category_id(category)
+        unit_id = self.get_unit_id(unit)
         self.c.execute('''INSERT INTO transactions 
-                       (user_id, vault_id, transaction_type,amount,category_id, desctription, quantity,unit,date)
+                       (user_id, vault_id, transaction_type,amount,category_id, desctription, quantity,unit_id,date)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
                   ''', 
-                (user_id,vault_id,transaction_type,amount,category_id,description,quantity,unit))
+                (user_id,vault_id,transaction_type,amount,category_id,description,quantity,unit_id))
         return True
 
     #categories
-    def get_category_id(self,username):
-        self.c.execute("SELEC user_id form users WHERE username = ?")
-        user_id = self.c.fetchone()[0]
-        return user_id
+    def get_category_id(self,category):
+        self.c.execute("SELECT category_id FROM categories WHERE category = ?",(category,))
+        category_id = self.c.fetchone()[0]
+        return category_id
+    #units
+    def get_unit_id(self,unit):
+        if not unit:
+            return None
+        self.c.execute("SELECT unit_id FROM unitss WHERE unit = ?",(unit,))
+        unit_id = self.c.fetchone()[0]
+        return unit_id
     #services
     def deposit(self,username,vault_name,amount,category_name,description,quantity=None,unit=None):
         self.add_to_vault(username,vault_name,amount)
-
-        user_id = self.get_user_id(username)
-        vault_id = self.get_vault_id(vault_name)
-        category_id = self.get_category_id(category_name)
-        self.add_transaction(user_id,vault_id,"Deposit",amount,category_id,description,quantity,unit)
+        self.add_transaction(username,vault_name,"Deposit",amount,category_name,description,quantity,unit)
         return True
     def withdraw(self,username,vault_name,amount,category_name,description,quantity=None,unit=None):
         self.remove_from_vault(username,vault_name,amount)
-
-        user_id = self.get_user_id(username)
-        vault_id = self.get_vault_id(vault_name)
-        category_id = self.get_category_id(category_name)
-        self.add_transaction(user_id,vault_id,"Withdraw",-amount,category_id,description,quantity,unit)
+        self.add_transaction(username,vault_name,"Withdraw",-amount,category_name,description,quantity,unit)
         return True
     
