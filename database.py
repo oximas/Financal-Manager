@@ -125,11 +125,15 @@ class Database:
         return vault_id
     def vault_exists(self,username,vault_name):
         #check if vault exists
+        username = str(username)
+        username = username.capitalize()
         self.c.execute("SELECT * FROM vaults WHERE username = ? AND vault_name = ?",
                         (username, vault_name))
         vault = self.c.fetchone()
         return vault
     def add_vault(self,username,vault_name):
+        username = str(username)
+        username = username.capitalize()
         #adds vault if it doesnt exist already
         vault_name = vault_name.capitalize() #Make sure all vault names start with capital letter
         if self.vault_exists(username,vault_name):
@@ -144,20 +148,28 @@ class Database:
         # also the Main vault can't be deleted and all vault names start with a capital letter
         pass
     def vault_has_balance(self,username,vault_name,amount):
+        username = str(username)
+        username = username.capitalize()
         self.c.execute("SELECT balance FROM vaults WHERE username = ? AND vault_name = ?",(username,vault_name))
         balance = self.c.fetchone()[0]
         return balance>=amount
     def add_to_vault(self,username,vault_name,amount):
+        username = str(username)
+        username = username.capitalize()
         self.c.execute("UPDATE vaults SET balance = balance + ? WHERE username = ? AND vault_name = ?",
                     (amount, username,vault_name)) 
         return True
     def remove_from_vault(self,username,vault_name,amount):
+        username = str(username)
+        username = username.capitalize()
         if not self.vault_has_balance(username,vault_name,amount):
             return False
         self.c.execute("UPDATE vaults SET balance = balance - ? WHERE username = ? AND vault_name = ?",
                     (amount, username,vault_name)) 
         return True
     def get_user_vault_names(self,username):
+        username = str(username)
+        username = username.capitalize()
         self.c.execute("SELECT vault_name FROM vaults WHERE username = ?",(username))
         vaults = self.c.fetchall()
         vault_names = []
@@ -165,6 +177,8 @@ class Database:
             vault_names += [vault[0]]
         return vault_names
     def get_user_vaults(self,username):
+        username = str(username)
+        username = username.capitalize()
         self.c.execute("SELECT (vault_name,balance) FROM vaults WHERE username = ?",(username))
         vaults = self.c.fetchall()
         return dict(vaults)
