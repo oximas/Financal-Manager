@@ -149,12 +149,13 @@ class GUI:
         self.back_button = Button(self.master, text="Back", command=lambda: self.user_menu())
         self.back_button.pack(pady=2)
 
-    def process_transaction(self, transaction_type,vault):
+    def process_transaction(self, transaction_type,vault,money_amount,category_name,description,quantity=None,unit=None):
         if(transaction_type=="Withdraw"):
-            self.db.withdraw(self.username,vault,60,"Food","Eggs",10,"Pieces")
+            self.db.withdraw(self.username,vault,money_amount,category_name,description,quantity,unit)
+            print("Withdrew")
         elif(transaction_type=="Deposit"):
-            self.db.deposit(self.username,vault,1000,"Wage","Job")
-            print("depsited a 1000 to Main vault in category Wage(Job)")
+            self.db.deposit(self.username,vault,money_amount,category_name,description,quantity,unit)
+            print("Depsited")
         else:
             raise ValueError("transaction type must be 'Withdraw' or 'Deposit' ")
 
