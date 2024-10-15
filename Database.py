@@ -1,4 +1,6 @@
+from email import message
 import sqlite3
+from tkinter import messagebox
 class Database:
     def __init__(self, db_name='financial_manager2.db'):
         self.conn = sqlite3.connect(db_name)
@@ -155,6 +157,11 @@ class Database:
         user_id = self.get_user_id(username)
         self.c.execute("SELECT balance FROM vaults WHERE user_id = ? AND vault_name = ?",(user_id,vault_name))
         balance = self.c.fetchone()[0]
+        try:
+            balance = float(balance)
+            amount = float(amount)
+        except TypeError:
+            messagebox.showerror("incorrect amount", "money amount must be an integer")
         return balance>=amount
     def add_to_vault(self,username,vault_name,amount):
         username = str(username)
@@ -227,10 +234,10 @@ class Database:
     #services
     def deposit(self,username,vault_name,amount,category_name,description,quantity=None,unit=None):
         self.add_to_vault(username,vault_name,amount)
-        self.add_transaction(username,vault_name,"Deposit",amount,category_name,description,quantity,unit)
+        self.add_transaction(username,vault_name,"Deposit",float(amount),category_name,description,float(quantity),unit)
         return True
     def withdraw(self,username,vault_name,amount,category_name,description,quantity=None,unit=None):
         self.remove_from_vault(username,vault_name,amount)
-        self.add_transaction(username,vault_name,"Withdraw",-amount,category_name,description,quantity,unit)
+        self.add_transaction(username,vault_name,"Withdraw",-float(amount),category_name,description,float(quantity),unit)
         return True
     

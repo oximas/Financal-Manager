@@ -166,8 +166,19 @@ class GUI:
         chosen_vault.set("Main")
         self.vault_options = OptionMenu(self.master,chosen_vault,*self.db.get_user_vault_names(self.username))
         self.vault_options.pack(pady=2)
-
-        self.submit_button = Button(self.master, text=transaction_type, command=lambda: self.process_transaction(transaction_type,chosen_vault.get()))
+        if(transaction_type=="Withdraw"):
+            self.submit_button = Button(self.master, text=transaction_type, 
+                                        command=lambda: self.process_transaction(transaction_type,chosen_vault.get(),
+                                                                                self.amount_entry.get(),chosen_category.get(),
+                                                                                self.description_entry.get(),self.quantity_entry.get(),
+                                                                                chosen_unit.get()))
+        elif transaction_type=="Deposit":
+            self.submit_button = Button(self.master, text=transaction_type, 
+                                        command=lambda: self.process_transaction(transaction_type,chosen_vault.get(),
+                                                                                self.amount_entry.get(),chosen_category.get(),
+                                                                                self.description_entry.get()))
+        else:
+            raise ValueError("transaction type must be 'Withdraw' or 'Deposit' ")
         self.submit_button.pack(pady=10)
 
         self.back_button = Button(self.master, text="Back", command=lambda: self.user_menu())
