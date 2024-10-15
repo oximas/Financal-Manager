@@ -178,9 +178,7 @@ class Database:
         user_id = self.get_user_id(username)
         self.c.execute("SELECT vault_name FROM vaults WHERE user_id = ?",(user_id,))
         vaults = self.c.fetchall()
-        vault_names = []
-        for vault in vaults:
-            vault_names += [vault[0]]
+        vault_names = [vault[0] for vault in vaults]
         return vault_names
     def get_user_vaults(self,username):
         username = str(username)
@@ -190,7 +188,7 @@ class Database:
         vaults = self.c.fetchall()
         return dict(vaults)
     #transactions
-    def add_transaction(self,username,vault_name,transaction_type,amount,category,description,quantity=None,unit=None):
+    def add_transaction(self,username,vault_name,transaction_type,money_amount,category,description,quantity=None,unit=None):
         user_id = self.get_user_id(username)
         vault_id = self.get_vault_id(vault_name)
         category_id = self.get_category_id(category)
@@ -199,7 +197,7 @@ class Database:
                        (user_id, vault_id, transaction_type,amount,category_id, description, quantity,unit_id,date)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
                   ''', 
-                (user_id,vault_id,transaction_type,amount,category_id,description.lower(),quantity,unit_id))
+                (user_id,vault_id,transaction_type,money_amount,category_id,description.lower(),quantity,unit_id))
         self.conn.commit()
         return True
 
@@ -208,6 +206,12 @@ class Database:
         self.c.execute("SELECT category_id FROM categories WHERE category_name = ?",(category,))
         category_id = self.c.fetchone()[0]
         return category_id
+    
+    def get_category_names(self):
+        self.c.execute("SELECT category_name FROM categories")
+        categories = self.c.fetchall()
+        category_names = [category[0] for category in  categories]
+        return category_names
     #units
     def get_unit_id(self,unit_name):
         if not unit_name:
@@ -215,6 +219,11 @@ class Database:
         self.c.execute("SELECT unit_id FROM units WHERE unit_name = ?",(unit_name,))
         unit_id = self.c.fetchone()[0]
         return unit_id
+    def get_unit_names(self):
+        self.c.execute("SELECT unit_name FROM units")
+        units = self.c.fetchall()
+        unit_names = [unit[0] for unit in  units]
+        return unit_names
     #services
     def deposit(self,username,vault_name,amount,category_name,description,quantity=None,unit=None):
         self.add_to_vault(username,vault_name,amount)
