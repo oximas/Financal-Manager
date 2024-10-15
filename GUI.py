@@ -128,16 +128,40 @@ class GUI:
 
         self.master.title(f"{transaction_type} Menu")
 
-        self.amount_label = Label(self.master, text="Amount:")
+        self.amount_label = Label(self.master, text="Money Amount:")
         self.amount_label.pack(pady=2)
         self.amount_entry = Entry(self.master)
         self.amount_entry.pack(pady=2)
 
-        self.reason_label = Label(self.master, text="Reason:")
-        self.reason_label.pack(pady=2)
-        self.reason_entry = Entry(self.master)
-        self.reason_entry.pack(pady=2)
+        self.category_label = Label(self.master, text="Category:")
+        self.category_label.pack()
+        category_names = self.db.get_category_names()
+        chosen_category = StringVar(self.master)
+        chosen_category.set(category_names[0] if len(category_names) else "Please add more categories")
+        self.category_options = OptionMenu(self.master,chosen_category,*category_names)
+        self.category_options.pack()
 
+        self.description_label = Label(self.master, text="Description:")
+        self.description_label.pack(pady=2)
+        self.description_entry = Entry(self.master)
+        self.description_entry.pack(pady=2)
+
+        if(transaction_type=="Withdraw"):
+            self.quantity_label = Label(self.master, text="Quantity:")
+            self.quantity_label.pack(pady=2)
+            self.quantity_entry = Entry(self.master)
+            self.quantity_entry.pack(pady=2)
+
+            self.unit_label = Label(self.master, text="Unit:")
+            self.unit_label.pack()
+            unit_names = self.db.get_unit_names()
+            chosen_unit = StringVar(self.master)
+            chosen_unit.set(unit_names[0] if len(unit_names) else "Please add more units")
+            self.unit_options = OptionMenu(self.master,chosen_unit,*unit_names)
+            self.unit_options.pack()
+
+        self.vault_label = Label(self.master, text="Vault:")
+        self.vault_label.pack()
         chosen_vault = StringVar(self.master)
         chosen_vault.set("Main")
         self.vault_options = OptionMenu(self.master,chosen_vault,*self.db.get_user_vault_names(self.username))
@@ -165,13 +189,13 @@ class GUI:
 
         self.master.title("Transfer Menu")
 
-        
+        vault_names = self.db.get_user_vault_names(self.username)
 
         self.from_vault_label = Label(self.master, text="From:")
         self.from_vault_label.grid(row=0,column=0, padx=5)
         from_vault = StringVar(self.master)
-        from_vault.set("Main")
-        self.from_vault_options = OptionMenu(self.master,from_vault,*self.db.get_user_vault_names(self.username))
+        from_vault.set(vault_names[0])
+        self.from_vault_options = OptionMenu(self.master,from_vault,*vault_names)
         self.from_vault_options.grid(row=0,column=1)
 
         self.to_user_label = Label(self.master, text="To user:")
@@ -184,8 +208,8 @@ class GUI:
         self.to_vault_label = Label(self.master, text="To vault:")
         self.to_vault_label.grid(row=2,column=0, padx=5)
         to_vault = StringVar(self.master)
-        to_vault.set("Main")
-        self.to_vault_options = OptionMenu(self.master,to_vault,*self.db.get_user_vault_names(self.username))
+        to_vault.set(vault_names[0])
+        self.to_vault_options = OptionMenu(self.master,to_vault,*vault_names)
         self.to_vault_options.grid(row=2,column=1)
 
         self.amount_label = Label(self.master, text="Amount:")
