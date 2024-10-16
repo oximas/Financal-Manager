@@ -1,3 +1,4 @@
+from os import error
 import customtkinter
 from tkinter import * # type: ignore
 from tkinter import messagebox
@@ -251,6 +252,8 @@ class GUI:
             if(float(amount)<=0):
                 messagebox.showwarning("incorrect money amount","amount must be a postive number")
                 return
+            if(self.username==to_user and from_vault==to_vault):
+                messagebox.showwarning("incorrect transaction","cannot transfer to the same vault that you are taking money out of")
             self.db.transfer(self.username,from_vault,to_user,to_vault,amount)
         except:
             messagebox.showerror("Unsuccessful Transaction","Transfer interaction was unsuccessful")

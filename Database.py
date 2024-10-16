@@ -237,11 +237,11 @@ class Database:
     #services
     def deposit(self,username,vault_name,amount,category_name,description,quantity=None,unit=None):
         self.add_to_vault(username,vault_name,amount)
-        self.add_transaction(username,vault_name,"Deposit",float(amount),category_name,description,float(quantity),unit)
+        self.add_transaction(username,vault_name,"Deposit",float(amount),category_name,description,quantity,unit)
         return True
     def withdraw(self,username,vault_name,amount,category_name,description,quantity=None,unit=None):
         self.remove_from_vault(username,vault_name,amount)
-        self.add_transaction(username,vault_name,"Withdraw",-float(amount),category_name,description,float(quantity),unit)
+        self.add_transaction(username,vault_name,"Withdraw",-float(amount),category_name,description,quantity,unit)
         return True
     def transfer(self,from_user,from_vault,to_user,to_vault,amount,description=None):
         if(description==None):
