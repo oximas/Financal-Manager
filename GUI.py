@@ -76,7 +76,7 @@ class GUI:
     def login(self,username,password):
         correct_password = self.db.check_user_password(username,password)
         if correct_password:
-            self.username=username
+            self.username=username.capitalize()
             self.user_menu()
         else:
             messagebox.showerror("Incorect login info","your username and password don't match")
@@ -89,13 +89,13 @@ class GUI:
              messagebox.showerror("dublicate username","username already exists")
              return
         self.db.add_user(username,password)
-        self.username=username
+        self.username=username.capitalize()
         self.user_menu()
 
     def user_menu(self):
         self.destory_all_widgets()
 
-        self.master.title(f"Finance Manager - {self.username}")  # Show the username in the title
+        self.master.title(f"Finance Manager - {self.username.capitalize()}")  # Show the username in the title
 
         self.deposit_button = Button(self.master, text="Deposit", command=self.deposit_menu)
         self.deposit_button.pack(pady=2)
