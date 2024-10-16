@@ -185,14 +185,19 @@ class GUI:
         self.back_button.pack(pady=2)
 
     def process_transaction(self, transaction_type,vault,money_amount,category_name,description,quantity=None,unit=None):
-        if(transaction_type=="Withdraw"):
-            self.db.withdraw(self.username,vault,money_amount,category_name,description,quantity,unit)
-            print("Withdrew")
-        elif(transaction_type=="Deposit"):
-            self.db.deposit(self.username,vault,money_amount,category_name,description,quantity,unit)
-            print("Depsited")
+        try:
+            if(transaction_type=="Withdraw"):
+                self.db.withdraw(self.username,vault,money_amount,category_name,description,quantity,unit)
+                print("Withdrew")
+            elif(transaction_type=="Deposit"):
+                self.db.deposit(self.username,vault,money_amount,category_name,description,quantity,unit)
+                print("Depsited")
+            else:
+                raise ValueError("transaction type must be 'Withdraw' or 'Deposit' ")
+        except:
+            messagebox.showerror("Unsuccessful Transaction",f"{transaction_type} transaction was unsuccessful")
         else:
-            raise ValueError("transaction type must be 'Withdraw' or 'Deposit' ")
+            messagebox.showinfo("Successful Transaction",f"{transaction_type} trans was successful")
 
 
     def transfer_menu(self):
@@ -250,7 +255,7 @@ class GUI:
         except:
             messagebox.showerror("Unsuccessful Transaction","Transfer interaction was unsuccessful")
         else:
-            messagebox.showerror("Successful Transaction","Transfer interaction was successful")
+            messagebox.showinfo("Successful Transaction","Transfer interaction was successful")
 
 
 
