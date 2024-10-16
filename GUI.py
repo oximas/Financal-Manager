@@ -242,7 +242,16 @@ class GUI:
 
 
     def process_transfer(self,from_vault,to_user,to_vault,amount):
-        pass
+        try:
+            if(float(amount)<=0):
+                messagebox.showwarning("incorrect money amount","amount must be a postive number")
+                return
+            self.db.transfer(self.username,from_vault,to_user,to_vault,amount)
+        except:
+            messagebox.showerror("Unsuccessful Transaction","Transfer interaction was unsuccessful")
+        else:
+            messagebox.showerror("Successful Transaction","Transfer interaction was successful")
+
 
 
     def loan_menu(self):

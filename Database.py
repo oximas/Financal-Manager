@@ -1,4 +1,4 @@
-from email import message
+
 import sqlite3
 from tkinter import messagebox
 class Database:
@@ -177,7 +177,7 @@ class Database:
         username = str(username)
         username = username.capitalize()
         if not self.vault_has_balance(username,vault_name,amount):
-            return False
+            raise ValueError("insufficent funds")
         user_id = self.get_user_id(username)
         self.c.execute("UPDATE vaults SET balance = balance - ? WHERE user_id = ? AND vault_name = ?",
                     (amount, user_id,vault_name)) 
@@ -243,4 +243,11 @@ class Database:
         self.remove_from_vault(username,vault_name,amount)
         self.add_transaction(username,vault_name,"Withdraw",-float(amount),category_name,description,float(quantity),unit)
         return True
+    def transfer(self,from_user,from_vault,to_user,to_vault,amount,description=None):
+        if(description==None):
+            description = "Transfering money"
+        self.remove_from_vault(from_user,from_vault,amount)
+        self.add_to_vault(to_user,to_vault,amount)
+        self.add_transaction(from_user,from_vault,"Transfer",-float(amount),"Others",description)
+        self.add_transaction(to_user,to_vault,"Transfer",amount,"Others",description)
     
