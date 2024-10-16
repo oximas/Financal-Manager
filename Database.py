@@ -244,7 +244,7 @@ class Database:
         self.add_transaction(username,vault_name,"Withdraw",-float(amount),category_name,description,quantity,unit)
         return True
     def transfer(self,from_user,from_vault,to_user,to_vault,amount,description=None):
-        if(description==None):
+        if(not description):
             description = "Transfering money"
         self.remove_from_vault(from_user,from_vault,amount)
         self.add_to_vault(to_user,to_vault,amount)

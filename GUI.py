@@ -234,27 +234,28 @@ class GUI:
         self.amount_entry = Entry(self.master)
         self.amount_entry.grid(row=3,column=1, pady=2, padx=3)
 
-        self.reason_label = Label(self.master, text="Reason:")
+        self.reason_label = Label(self.master, text="Reason(not required):")
         self.reason_label.grid(row=4,column=0,pady=2)
         self.reason_entry = Entry(self.master)
         self.reason_entry.grid(row=4,column=1,pady=2)
 
         self.submit_button = Button(self.master, text="Transfer", 
-                                    command=lambda: self.process_transfer(from_vault.get(),to_user.get(),to_vault.get(),self.amount_entry.get()))
+                                    command=lambda: self.process_transfer(from_vault.get(),to_user.get(),to_vault.get(),
+                                                                          self.amount_entry.get(),self.reason_entry.get()))
         self.submit_button.grid(row=5,column=1, pady=10)
 
         self.back_button = Button(self.master, text="Back", command=lambda: self.user_menu())
         self.back_button.grid(row=6,column=1, pady=2)
 
 
-    def process_transfer(self,from_vault,to_user,to_vault,amount):
+    def process_transfer(self,from_vault,to_user,to_vault,amount,reason):
         try:
             if(float(amount)<=0):
                 messagebox.showwarning("incorrect money amount","amount must be a postive number")
                 return
             if(self.username==to_user and from_vault==to_vault):
                 messagebox.showwarning("incorrect transaction","cannot transfer to the same vault that you are taking money out of")
-            self.db.transfer(self.username,from_vault,to_user,to_vault,amount)
+            self.db.transfer(self.username,from_vault,to_user,to_vault,amount,reason)
         except:
             messagebox.showerror("Unsuccessful Transaction","Transfer interaction was unsuccessful")
         else:
