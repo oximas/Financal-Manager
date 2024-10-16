@@ -90,7 +90,10 @@ class Database:
         user_id = self.c.fetchone()[0]
         return user_id
     def get_usernames(self):
-        self.c.execute("SELECT u")
+        self.c.execute("SELECT username FROM users")
+        res = self.c.fetchall()
+        usernames = [username[0] for username in res]
+        return usernames
     def user_exists(self,username):
         #check if user exists
         username = str(username)
