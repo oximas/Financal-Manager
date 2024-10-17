@@ -186,6 +186,7 @@ class GUI:
         self.back_button.pack(pady=2)
 
     def process_transaction(self, transaction_type,vault,money_amount,category_name,description,quantity=None,unit=None):
+       
         try:
             if(transaction_type=="Withdraw"):
                 self.db.withdraw(self.username,vault,money_amount,category_name,description,quantity,unit)
@@ -199,7 +200,7 @@ class GUI:
             messagebox.showerror("Unsuccessful Transaction",f"{transaction_type} transaction was unsuccessful")
         else:
             messagebox.showinfo("Successful Transaction",f"{transaction_type} trans was successful")
-
+        
 
     def transfer_menu(self):
         self.destory_all_widgets()
@@ -268,30 +269,91 @@ class GUI:
 
         self.master.title("Loan Menu")
 
+        vault_names = self.db.get_user_vault_names(self.username)
+        usernames = self.db.get_usernames()
+
+        self.from_user_label = Label(self.master, text="From user:")
+        self.from_user_label.grid(row=0,column=0, padx=5)
+        from_user = StringVar(self.master)
+        from_user.set(self.username)
+        self.from_user_options = OptionMenu(self.master,from_user,*usernames)
+        self.from_user_options.grid(row=0,column=1)
+
+        self.from_vault_label = Label(self.master, text="From:")
+        self.from_vault_label.grid(row=1,column=0, padx=5)
+        from_vault = StringVar(self.master)
+        from_vault.set(vault_names[0])
+        self.from_vault_options = OptionMenu(self.master,from_vault,*vault_names)
+        self.from_vault_options.grid(row=1,column=1)
+        
+        self.add_outside_user_button = Button(self.master,text="Add outside user",command=lambda: self.add_outside_user())
+        self.add_outside_user_button.grid(row=2,column=0,columnspan=2)
+
+        self.to_user_label = Label(self.master, text="To user:")
+        self.to_user_label.grid(row=3,column=0, padx=5)
+        to_user = StringVar(self.master)
+        to_user.set(self.username)
+        self.to_user_options = OptionMenu(self.master,to_user,*usernames)
+        self.to_user_options.grid(row=3,column=1)
+
+        self.to_vault_label = Label(self.master, text="To vault:")
+        self.to_vault_label.grid(row=4,column=0, padx=5)
+        to_vault = StringVar(self.master)
+        to_vault.set(vault_names[0])
+        self.to_vault_options = OptionMenu(self.master,to_vault,*vault_names)
+        self.to_vault_options.grid(row=4,column=1)
+
         self.amount_label = Label(self.master, text="Amount:")
-        self.amount_label.pack(pady=2)
+        self.amount_label.grid(row=5,column=0, pady=2)
         self.amount_entry = Entry(self.master)
-        self.amount_entry.pack(pady=2)
+        self.amount_entry.grid(row=5,column=1, pady=2, padx=3)
 
-        self.reason_label = Label(self.master, text="Reason:")
-        self.reason_label.pack(pady=2)
+        self.reason_label = Label(self.master, text="Reason(not required):")
+        self.reason_label.grid(row=6,column=0,pady=2)
         self.reason_entry = Entry(self.master)
-        self.reason_entry.pack(pady=2)
+        self.reason_entry.grid(row=6,column=1,pady=2)
 
-        self.person_label = Label(self.master, text="Person:")
-        self.person_label.pack(pady=2)
-        self.person_entry = Entry(self.master)
-        self.person_entry.pack(pady=2)
-
-        self.submit_button = Button(self.master, text="Record Loan", command=lambda: self.process_loan())
-        self.submit_button.pack(pady=10)
+        self.submit_button = Button(self.master, text="Loan", 
+                                    command=lambda: self.process_loan(from_user.get(),from_vault.get(),to_user.get(),to_vault.get(),
+                                                                          self.amount_entry.get(),self.reason_entry.get()))
+        self.submit_button.grid(row=7,column=1, pady=10)
 
         self.back_button = Button(self.master, text="Back", command=lambda: self.user_menu())
-        self.back_button.pack(pady=2)
+        self.back_button.grid(row=8,column=1, pady=2)
 
-    def process_loan(self):
-        pass
-
+    def process_loan(self,from_user,from_vault,to_user,to_vault,amount,reason=None):
+        if(from_user==to_user):
+            if(from_user==self.username):
+                messagebox.showwarning("invalid users", "can't loan yourself  from yourself, silly! :)")   
+                return 
+            messagebox.showwarning("invalid users", "can't loan from and to the same user")
+            return
+        ##add error checking after testing
+        self.db.loan(from_user,from_vault,to_user,to_vault,amount,reason)
+    def add_outside_user(self):
+        self.destory_all_widgets()
+        def add_user_then_back():
+            username = self.add_user_entry.get()
+            if not username:
+                messagebox.showerror("invalid username","username can't be empty")
+                return
+            if self.db.user_exists(username):
+                messagebox.showerror("invalid username","username already exists")
+                return
+                
+            self.db.add_user(self.add_user_entry.get())
+            self.loan_menu() #change later if you had to add a fake user from a different place
+        self.master.title("Adding outside user")
+        
+        self.add_user_label = Label(self.master,text="username:")
+        self.add_user_label.grid(row=0,column=0)
+        self.add_user_entry = Entry(self.master)
+        self.add_user_entry.grid(row=0,column=1)
+        
+        self.add_user_button = Button(self.master,text="Add User",
+                                      command=lambda:add_user_then_back)
+        self.add_user_button.grid(row=1,column=0,columnspan=2)
+        
 
     def summary_menu(self):
         for widget in self.master.winfo_children():
