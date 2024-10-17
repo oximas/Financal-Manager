@@ -8,7 +8,7 @@ class Database:
         self.create_tables()
     
     def create_tables(self):
-        #if pass is null theu arnet a user 
+        #if pass is null they arnet a user 
         #but just some one you loan with
         self.c.execute('''
         CREATE TABLE IF NOT EXISTS users (
@@ -53,12 +53,12 @@ class Database:
         # Create loan table
         self.c.execute('''
         CREATE TABLE IF NOT EXISTS loans (
-            from_id INT NOT NULL,
-            to_id INT NOT NULL,
+            from_vault_id NOT NULL,
+            to_vault_id NOT NULL,
             amount REAL NOT NULL,
-            PRIMARY KEY (from_id , to_id),
-            FOREIGN KEY (from_id) REFERENCES users (user_id) 
-            FOREIGN KEY (to_id) REFERENCES users (user_id)
+            PRIMARY KEY (from_vault_id, to_vault_id),
+            FOREIGN KEY (from_vault_id) REFERENCES vaults (vault_id) 
+            FOREIGN KEY (to_vault_id) REFERENCES vaults (vault_id)
         )
         ''')
 
@@ -124,8 +124,9 @@ class Database:
         return True
     
     #vaults
-    def get_vault_id(self,vault_name):
-        self.c.execute("SELECT vault_id FROM vaults WHERE vault_name = ?", (vault_name,))
+    def get_vault_id(self,username,vault_name):
+        user_id = self.get_user_id(username)
+        self.c.execute("SELECT vault_id FROM vaults WHERE user_id = ? AND vault_name = ?", (user_id,vault_name))
         vault_id = self.c.fetchone()[0]
         return vault_id
     def vault_exists(self,username,vault_name):
@@ -200,7 +201,7 @@ class Database:
     #transactions
     def add_transaction(self,username,vault_name,transaction_type,money_amount,category,description,quantity=None,unit=None):
         user_id = self.get_user_id(username)
-        vault_id = self.get_vault_id(vault_name)
+        vault_id = self.get_vault_id(username,vault_name)
         category_id = self.get_category_id(category)
         unit_id = self.get_unit_id(unit)
         self.c.execute('''INSERT INTO transactions 
@@ -210,6 +211,27 @@ class Database:
                 (user_id,vault_id,transaction_type,money_amount,category_id,description.lower(),quantity,unit_id))
         self.conn.commit()
         return True
+    #loans
+    
+
+    def add_loan(self,from_user,from_vault,to_user,to_vault,money_amount):
+        from_vault_id = self.get_vault_id(from_user,from_vault)
+        to_vault_id = self.get_vault_id(to_user,to_vault)
+        def loan_exists():
+            self.c.execute("SELECT * FROM loans WHERE from_vault_id= ? AND to_vault_id= ?",
+                           (from_vault_id,to_vault_id))
+            loan = self.c.fetchall()
+            return len(loan)>=1
+        if(loan_exists()):
+            self.c.execute("""UPDATE loans 
+                            SET amount = amount + ?
+                            WHERE from_vault_id = ? AND to_vault_id = ?""",
+                            (money_amount,from_vault_id,to_vault_id))
+        else:
+            self.c.execute("INSERT INTO loans (from_vault_id,to_vault_id,amount) VALUES(?,?,?)",
+                           (from_vault_id,to_vault_id,money_amount))
+        self.conn.commit()
+        
 
     #categories
     def get_category_id(self,category):
@@ -239,15 +261,21 @@ class Database:
         self.add_to_vault(username,vault_name,amount)
         self.add_transaction(username,vault_name,"Deposit",float(amount),category_name,description,quantity,unit)
         return True
+    
     def withdraw(self,username,vault_name,amount,category_name,description,quantity=None,unit=None):
         self.remove_from_vault(username,vault_name,amount)
         self.add_transaction(username,vault_name,"Withdraw",-float(amount),category_name,description,quantity,unit)
         return True
-    def transfer(self,from_user,from_vault,to_user,to_vault,amount,description=None):
-        if(not description):
-            description = "Transfering money"
+    def transfer(self,from_user,from_vault,to_user,to_vault,amount,description=None,is_loan_=False):
+        transaction_type= "Loan" if is_loan_ else "Transfer"
+        description = description if description else f"{transaction_type}ing money" 
         self.remove_from_vault(from_user,from_vault,amount)
         self.add_to_vault(to_user,to_vault,amount)
-        self.add_transaction(from_user,from_vault,"Transfer",-float(amount),"Others",description)
-        self.add_transaction(to_user,to_vault,"Transfer",amount,"Others",description)
-    
+        self.add_transaction(from_user,from_vault,transaction_type,-float(amount),"Others",description)
+        self.add_transaction(to_user,to_vault,transaction_type,amount,"Others",description)
+
+    def loan(self,from_user,from_vault,to_user,to_vault,amount,description=None):
+        self.transfer(from_user,from_vault,to_user,to_vault,amount,description,is_loan_=True)
+        self.add_loan(from_user,from_vault,to_user,to_vault,amount)
+        
+        
