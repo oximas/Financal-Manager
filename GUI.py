@@ -366,7 +366,7 @@ class GUI:
         self.add_user_entry.grid(row=0,column=1)
         
         self.add_user_button = Button(self.master,text="Add User",
-                                      command=lambda:add_user_then_back)
+                                      command=add_user_then_back)
         self.add_user_button.grid(row=1,column=0,columnspan=2)
         
 
