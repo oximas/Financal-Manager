@@ -114,7 +114,7 @@ class Database:
         username = str(username)
         username = username.capitalize()
         if self.user_exists(username):
-            return False
+            raise Exception("Can't add auser that exists")
         self.c.execute("INSERT INTO users (username, password) VALUES (?, ?)", 
                        (username, password))
         user_id = self.get_user_id(username)
