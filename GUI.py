@@ -1,4 +1,5 @@
 from os import error
+import tkinter as tk
 import customtkinter
 from tkinter import * # type: ignore
 from tkinter import messagebox
@@ -207,27 +208,28 @@ class GUI:
 
         self.master.title("Transfer Menu")
 
-        vault_names = self.db.get_user_vault_names(self.username)
+        from_vault_names = self.db.get_user_vault_names(self.username)
 
         self.from_vault_label = Label(self.master, text="From:")
         self.from_vault_label.grid(row=0,column=0, padx=5)
         from_vault = StringVar(self.master)
-        from_vault.set(vault_names[0])
-        self.from_vault_options = OptionMenu(self.master,from_vault,*vault_names)
+        from_vault.set(from_vault_names[0])
+        self.from_vault_options = OptionMenu(self.master,from_vault,*from_vault_names)
         self.from_vault_options.grid(row=0,column=1)
 
         self.to_user_label = Label(self.master, text="To user:")
         self.to_user_label.grid(row=1,column=0, padx=5)
         to_user = StringVar(self.master)
         to_user.set(self.username)
-        self.to_user_options = OptionMenu(self.master,to_user,*self.db.get_usernames())
+        self.to_user_options = OptionMenu(self.master,to_user,*self.db.get_usernames(), command=lambda username:refresh_to_user_vault_names(username))
         self.to_user_options.grid(row=1,column=1)
 
+        to_vault_names = self.db.get_user_vault_names(to_user.get())
         self.to_vault_label = Label(self.master, text="To vault:")
         self.to_vault_label.grid(row=2,column=0, padx=5)
         to_vault = StringVar(self.master)
-        to_vault.set(vault_names[0])
-        self.to_vault_options = OptionMenu(self.master,to_vault,*vault_names)
+        to_vault.set(to_vault_names[0])
+        self.to_vault_options = OptionMenu(self.master,to_vault,*to_vault_names)
         self.to_vault_options.grid(row=2,column=1)
 
         self.amount_label = Label(self.master, text="Amount:")
@@ -247,6 +249,19 @@ class GUI:
 
         self.back_button = Button(self.master, text="Back", command=lambda: self.user_menu())
         self.back_button.grid(row=6,column=1, pady=2)
+
+        def refresh_to_user_vault_names(username):
+            to_vault_names = self.db.get_user_vault_names(username)
+            to_vault.set(to_vault_names[0])
+            self.to_vault_options['menu'].delete(0,'end')
+            for vault in to_vault_names:
+                self.to_vault_options['menu'].add_command(label=vault,command=lambda:tk._setit(to_vault,vault))
+        def refresh_from_user_vault_names(username):
+            from_vault_names = self.db.get_user_vault_names(username)
+            from_vault.set(from_vault_names[0])
+            self.from_vault_options['menu'].delete(0,'end')
+            for vault in from_vault_names:
+                self.from_vault_options['menu'].add_command(label=vault,command=lambda:tk._setit(to_vault,vault))
 
 
     def process_transfer(self,from_vault,to_user,to_vault,amount,reason):
