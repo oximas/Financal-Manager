@@ -25,7 +25,7 @@ class Database:
             vault_name TEXT NOT NULL,
             user_id INTEGER NOT NULL,
             balance REAL NOT NULL,
-            FOREIGN KEY (user_id) REFERENCES users (user_id),
+            FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE,
             UNIQUE (vault_name, user_id)
         )
         ''')
@@ -35,19 +35,17 @@ class Database:
         self.c.execute('''
         CREATE TABLE IF NOT EXISTS transactions (
             transaction_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
             vault_id INTEGER NOT NULL,
             transaction_type TEXT NOT NULL,
             amount REAL NOT NULL,         -- The amount of money spent
-            category_id INTEGER NOT NULL,
+            category_id INTEGER,
             description TEXT NOT NULL,    -- General purpose for what was bought or paid for
             quantity REAL,                -- Quantity of the item or service
             unit_id  INTEGER,                    -- The unit of measurement (e.g., "kg", "pcs")
             date TEXT NOT NULL,
-            FOREIGN KEY (user_id) REFERENCES users (user_id),
-            FOREIGN KEY (vault_id) REFERENCES vaults (vault_id),
-            FOREIGN KEY (category_id) REFERENCES categories (category_id)
-            FOREIGN KEY (unit_id) REFERENCES units (unit_id)
+            FOREIGN KEY (vault_id) REFERENCES vaults (vault_id) ON DELETE CASCADE,
+            FOREIGN KEY (category_id) REFERENCES categories (category_id) ON DELETE SET NULL,
+            FOREIGN KEY (unit_id) REFERENCES units (unit_id) ON DELETE SET NULL
         )
         ''')
         # Create loan table
@@ -57,7 +55,7 @@ class Database:
             to_vault_id NOT NULL,
             amount REAL NOT NULL,
             PRIMARY KEY (from_vault_id, to_vault_id),
-            FOREIGN KEY (from_vault_id) REFERENCES vaults (vault_id) 
+            FOREIGN KEY (from_vault_id) REFERENCES vaults (vault_id),
             FOREIGN KEY (to_vault_id) REFERENCES vaults (vault_id)
         )
         ''')
@@ -200,15 +198,14 @@ class Database:
         return dict(vaults)
     #transactions
     def add_transaction(self,username,vault_name,transaction_type,money_amount,category,description,quantity=None,unit=None):
-        user_id = self.get_user_id(username)
         vault_id = self.get_vault_id(username,vault_name)
         category_id = self.get_category_id(category)
         unit_id = self.get_unit_id(unit)
         self.c.execute('''INSERT INTO transactions 
-                       (user_id, vault_id, transaction_type,amount,category_id, description, quantity,unit_id,date)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                       (vault_id, transaction_type,amount,category_id, description, quantity,unit_id,date)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
                   ''', 
-                (user_id,vault_id,transaction_type,money_amount,category_id,description.lower(),quantity,unit_id))
+                (vault_id,transaction_type,money_amount,category_id,description.lower(),quantity,unit_id))
         self.conn.commit()
         return True
     #loans
