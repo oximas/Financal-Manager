@@ -291,7 +291,7 @@ class GUI:
         self.from_user_label.grid(row=0,column=0, padx=5)
         from_user = StringVar(self.master)
         from_user.set(self.username)
-        self.from_user_options = OptionMenu(self.master,from_user,*usernames)
+        self.from_user_options = OptionMenu(self.master,from_user,*usernames,command=lambda x:refresh_from_user_vault_names(from_user.get()))
         self.from_user_options.grid(row=0,column=1)
 
         self.from_vault_label = Label(self.master, text="From:")
@@ -301,14 +301,14 @@ class GUI:
         self.from_vault_options = OptionMenu(self.master,from_vault,*vault_names)
         self.from_vault_options.grid(row=1,column=1)
         
-        self.add_outside_user_button = Button(self.master,text="Add outside user",command=lambda: self.add_outside_user())
-        self.add_outside_user_button.grid(row=2,column=0,columnspan=2)
+        #self.add_outside_user_button = Button(self.master,text="Add outside user",command=lambda: self.add_outside_user())
+        #self.add_outside_user_button.grid(row=2,column=0,columnspan=2)
 
         self.to_user_label = Label(self.master, text="To user:")
         self.to_user_label.grid(row=3,column=0, padx=5)
         to_user = StringVar(self.master)
         to_user.set(self.username)
-        self.to_user_options = OptionMenu(self.master,to_user,*usernames)
+        self.to_user_options = OptionMenu(self.master,to_user,*usernames,command=lambda x:refresh_to_user_vault_names(to_user.get()))
         self.to_user_options.grid(row=3,column=1)
 
         self.to_vault_label = Label(self.master, text="To vault:")
@@ -336,6 +336,18 @@ class GUI:
         self.back_button = Button(self.master, text="Back", command=lambda: self.user_menu())
         self.back_button.grid(row=8,column=1, pady=2)
 
+        def refresh_to_user_vault_names(username):
+            to_vault_names = self.db.get_user_vault_names(username)
+            to_vault.set(to_vault_names[0])
+            self.to_vault_options['menu'].delete(0,'end')
+            for vault in to_vault_names:
+                self.to_vault_options['menu'].add_command(label=vault,command=lambda:tk._setit(to_vault,vault))
+        def refresh_from_user_vault_names(username):
+            from_vault_names = self.db.get_user_vault_names(username)
+            from_vault.set(from_vault_names[0])
+            self.from_vault_options['menu'].delete(0,'end')
+            for vault in from_vault_names:
+                self.from_vault_options['menu'].add_command(label=vault,command=lambda:tk._setit(from_vault,vault))
     def process_loan(self,from_user,from_vault,to_user,to_vault,amount,reason=None):
         if(from_user==to_user):
             if(from_user==self.username):
