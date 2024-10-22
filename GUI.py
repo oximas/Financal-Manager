@@ -1,4 +1,3 @@
-from os import error
 import tkinter as tk
 import customtkinter
 from tkinter import * # type: ignore
@@ -349,11 +348,13 @@ class GUI:
             for vault in from_vault_names:
                 self.from_vault_options['menu'].add_command(label=vault,command=lambda:tk._setit(from_vault,vault))
     def process_loan(self,from_user,from_vault,to_user,to_vault,amount,reason=None):
+        if(from_user!=self.username and to_user!=self.username):
+            messagebox.showwarning("invalid users", "One of the users has to be you!!")   
         if(from_user==to_user):
             if(from_user==self.username):
-                messagebox.showwarning("invalid users", "can't loan yourself  from yourself, silly! :)")   
+                messagebox.showwarning("Invalid Users", "Can't loan yourself  from yourself, silly! :)")   
                 return 
-            messagebox.showwarning("invalid users", "can't loan from and to the same user")
+            messagebox.showwarning("Invalid Users", "Can't loan from and to the same user")
             return
         ##add error checking after testing
         self.db.loan(from_user,from_vault,to_user,to_vault,amount,reason)
