@@ -193,9 +193,21 @@ class Database:
         username = str(username)
         username = username.capitalize()
         user_id = self.get_user_id(username)
-        self.c.execute("SELECT (vault_name,balance) FROM vaults WHERE user_id = ?",(user_id,))
+        self.c.execute("SELECT vault_name,balance FROM vaults WHERE user_id = ?",(user_id,))
         vaults = self.c.fetchall()
-        return dict(vaults)
+        vault_dict={}
+        for vault_name,balance in vaults:
+            vault_dict[vault_name]=balance
+        return vault_dict
+    def get_user_balance(self,username):
+        username = username.capitalize()
+        user_id = self.get_user_id(username)
+        self.c.execute("SELECT balance FROM vaults WHERE user_id = ?",(user_id,))
+        balances = self.c.fetchall()
+        total_balance = 0
+        for balance in balances:
+            total_balance+=balance[0]
+        return total_balance
     #transactions
     def add_transaction(self,username,vault_name,transaction_type,money_amount,category,description,quantity=None,unit=None):
         vault_id = self.get_vault_id(username,vault_name)
@@ -229,7 +241,23 @@ class Database:
                            (from_vault_id,to_vault_id,money_amount))
         self.conn.commit()
         
-
+    def get_loans(self, username):
+        query = '''
+        SELECT 
+            u_from.username AS from_user,
+            u_to.username AS to_user,
+            SUM(l.amount) AS total_sum
+        FROM loans l
+        JOIN vaults v_from ON l.from_vault_id = v_from.vault_id
+        JOIN vaults v_to ON l.to_vault_id = v_to.vault_id
+        JOIN users u_from ON v_from.user_id = u_from.user_id
+        JOIN users u_to ON v_to.user_id = u_to.user_id
+        WHERE u_from.username = ? OR u_to.username = ?
+        GROUP BY u_from.username, u_to.username
+        '''
+        self.c.execute(query, (username, username))
+        results = self.c.fetchall()
+        return results
     #categories
     def get_category_id(self,category):
         self.c.execute("SELECT category_id FROM categories WHERE category_name = ?",(category,))

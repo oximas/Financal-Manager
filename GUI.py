@@ -388,24 +388,30 @@ class GUI:
             widget.destroy()
 
         self.master.title("Summary Menu")
-        self.total_label = Label(self.master, text=f"Total Amount: {self.get_balance():.2f} EGP")
+        self.total_label = Label(self.master, text=f"Total Amount: {self.db.get_user_balance(self.username):.2f} EGP")
         self.total_label.pack(pady=10)
 
         # Display vault details
         self.vault_details_label = Label(self.master, text="Vault Details:")
         self.vault_details_label.pack(pady=2)
-        for vault in self.get_vaults():
-            vault_info = f"{vault["name"]}: {vault["balance"]:.2f} EGP"
+        vaults = self.db.get_user_vaults(self.username)
+        for vault_name,balance in vaults.items():
+            vault_info = f"{vault_name}: {balance:.2f} EGP"
             Label(self.master, text=vault_info).pack(pady=2)
 
         # Display loan information
-        #c.execute("SELECT * FROM loans WHERE username = ?", (username,))
-        #loans = c.fetchall()
-        #self.loan_details_label = Label(self.master, text="Loan Details:")
-        #self.loan_details_label.pack(pady=2)
-        #for loan in loans:
-        #    loan_info = f"Amount: {loan[1]:.2f} EGP, Reason: {loan[2]}, Person: {loan[3]}"  # Assuming loan[1] is amount, loan[2] is reason, and loan[3] is person
-        #    Label(self.master, text=loan_info).pack(pady=2)
+        self.loan_details_label = Label(self.master, text="Loan Details:")
+        self.loan_details_label.pack(pady=2)
+        loans= self.db.get_loans(self.username)
+        owes = "owes"
+        for from_user,to_user,amount in loans:
+            if to_user == self.username:
+                to_user="YOU"
+                owes = "owe"
+            if from_user == self.username:
+                from_user="YOU"
+            loan_info = f"{to_user.upper()} {owes} {from_user.upper()} {amount:.2f}EGB"
+            Label(self.master, text=loan_info).pack(pady=2)
 
         self.back_button = Button(self.master, text="Back", command=lambda: self.user_menu())
         self.back_button.pack(pady=10)
@@ -434,10 +440,6 @@ class GUI:
         elif new_name=="":
             messagebox.showerror("Error", "Vault name can't be empty")
              
-    def get_balance(self):
-        return 0
-    def get_vaults(self):
-        return [{"name":"main","balance":0}]
     def destory_all_widgets(self):
          for widget in self.master.winfo_children():
             widget.destroy()
