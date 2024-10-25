@@ -427,6 +427,9 @@ class GUI:
         self.change_password_button = Button(self.master,text="Change password")
         self.change_password_button.pack(pady=2)
 
+        self.export_button = tk.Button(self.master, text="Export data to Excel", command=self.export_to_excel)
+        self.export_button.pack(pady=10)
+        
         self.logout_button = Button(self.master, text="Logout", command=self.main_menu)
         self.logout_button.pack(pady=2)
 
@@ -446,7 +449,15 @@ class GUI:
 
         elif new_vault_name=="":
             messagebox.showerror("Error", "Vault name can't be empty")
-             
+    def export_to_excel(self):
+        # Replace with actual functionality
+        print("Export to Excel called")
+        try:
+            self.db.export_to_excel(self.username)
+        except PermissionError:
+            messagebox.showerror("couldn't export into excel",'''close any instancesof the file, 
+                                                                and make sure you have write permissions''')
+         
     def destory_all_widgets(self):
          for widget in self.master.winfo_children():
             widget.destroy()

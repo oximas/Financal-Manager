@@ -1,6 +1,8 @@
 
 import sqlite3
 from tkinter import messagebox
+from tkinter import filedialog
+import pandas as pd
 class Database:
     def __init__(self, db_name='financial_manager2.db'):
         self.conn = sqlite3.connect(db_name)
@@ -302,5 +304,59 @@ class Database:
     def loan(self,from_user,from_vault,to_user,to_vault,amount,description=None):
         self.transfer(from_user,from_vault,to_user,to_vault,amount,description,is_loan_=True)
         self.add_loan(from_user,from_vault,to_user,to_vault,amount)
+    def export_to_excel(self,username):
+        def get_transactions_as_df():
+            self.c.execute('''
+                SELECT  vaults.vault_name,
+                    transactions.transaction_type,
+                    transactions.amount,
+                    categories.category_name,
+                    transactions.description,
+                    transactions.quantity,
+                    units.unit_name,
+                    transactions.date
+                FROM transactions
+                LEFT JOIN vaults ON transactions.vault_id = vaults.vault_id
+                LEFT JOIN categories ON transactions.category_id = categories.category_id
+                LEFT JOIN units ON transactions.unit_id = units.unit_id
+                WHERE vaults.user_id = ?
+                ORDER BY transactions.date DESC
+               
+            ''',(self.get_user_id(username),))
+            
+            rows = self.c.fetchall()
         
+            # Updated column names to match the SELECT statement
+            df = pd.DataFrame(rows, columns=[
+                'Vault Name',       # Corresponds to vaults.vault_name
+                'Transaction Type',  # Corresponds to transactions.transaction_type
+                'Amount',           # Corresponds to transactions.amount
+                'Category Name',    # Corresponds to categories.category_name
+                'Description',      # Corresponds to transactions.description
+                'Quantity',         # Corresponds to transactions.quantity
+                'Unit Name',        # Corresponds to units.unit_name
+                'Date'              # Corresponds to transactions.date
+            ])
+            print(df)
+            return df
+        def get_loans_as_df():
+            loans = self.get_loans(username)  # Get loan data using the previous function
+    
+            # Create DataFrame with appropriate column names
+            df = pd.DataFrame(loans, columns=['From User', 'To User', 'Total Loan Amount'])
+            
+            return df
+
+         # Prompt the user for the file location and name
+        file_path = filedialog.asksaveasfilename(defaultextension=".xlsx",
+                                                 filetypes=[("Excel files", "*.xlsx")])
+        if file_path:
+            # Query for data to export
+            transactions = get_transactions_as_df()
+            loans = get_loans_as_df()
+            with pd.ExcelWriter(file_path) as writer:
+                transactions.to_excel(writer, sheet_name='Transactions', index=False)
+                loans.to_excel(writer, sheet_name='Loans', index=False)
+            # Create a DataFrame and export to the selected Excel file
+            print(f"Transactions and loans where exported to {file_path}")    
         
