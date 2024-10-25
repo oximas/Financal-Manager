@@ -143,7 +143,7 @@ class Database:
         #adds vault if it doesnt exist already
         vault_name = vault_name.capitalize() #Make sure all vault names start with capital letter
         if self.vault_exists(username,vault_name):
-            return False
+            raise ValueError("can't have dublicate vaults")
         self.c.execute("INSERT INTO vaults (user_id,vault_name,balance) VALUES (?,?,0)",
                        (user_id,vault_name))
         self.conn.commit()

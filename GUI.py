@@ -434,10 +434,17 @@ class GUI:
         self.back_button.pack(pady=2)
     def add_vault(self):
         ask_new_name = customtkinter.CTkInputDialog(text="New vault name is:", title="Add new vault")
-        new_name = ask_new_name.get_input()
-        if new_name:
-            messagebox.showinfo("Success", f"Vault '{new_name}' added successfully!")
-        elif new_name=="":
+        new_vault_name = ask_new_name.get_input()
+        new_vault_name=new_vault_name.capitalize()
+        if new_vault_name:
+            try:
+                self.db.add_vault(self.username,new_vault_name)
+            except:
+                messagebox.showerror("Failed to add new vault", f"Vault '{new_vault_name}' already exists in your vaults!")
+            else:
+                messagebox.showinfo("Success", f"Vault '{new_vault_name}' added successfully!")
+
+        elif new_vault_name=="":
             messagebox.showerror("Error", "Vault name can't be empty")
              
     def destory_all_widgets(self):
