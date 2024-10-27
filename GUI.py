@@ -254,7 +254,7 @@ class GUI:
             to_vault.set(to_vault_names[0])
             self.to_vault_options['menu'].delete(0,'end')
             for vault in to_vault_names:
-                self.to_vault_options['menu'].add_command(label=vault,command=lambda:tk._setit(to_vault,vault))
+                self.to_vault_options['menu'].add_command(label=vault,command=lambda v=vault: to_vault.set(v))
         def refresh_from_user_vault_names(username):
             from_vault_names = self.db.get_user_vault_names(username)
             from_vault.set(from_vault_names[0])
