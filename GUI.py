@@ -349,16 +349,27 @@ class GUI:
             for vault in from_vault_names:
                 self.from_vault_options['menu'].add_command(label=vault,command=lambda v=vault: from_vault.set(v))
     def process_loan(self,from_user,from_vault,to_user,to_vault,amount,reason=None):
-        if(from_user!=self.username and to_user!=self.username):
-            messagebox.showwarning("invalid users", "One of the users has to be you!!")   
-        if(from_user==to_user):
-            if(from_user==self.username):
+        #Feature needed: if from user is not me probably adding a password check would be valid
+        #afer that showing the user the ammount of money available then confirming the transaction
+        try:
+            if(from_user!=self.username and to_user!=self.username):
+                messagebox.showwarning("invalid users", "One of the users has to be you!!")
+                return
+            if(from_user==to_user): # they both would equal to me if thats the case
                 messagebox.showwarning("Invalid Users", "Can't loan yourself  from yourself, silly! :)")   
-                return 
-            messagebox.showwarning("Invalid Users", "Can't loan from and to the same user")
-            return
-        ##add error checking after testing
-        self.db.loan(from_user,from_vault,to_user,to_vault,amount,reason)
+                return
+            # from here there are two users EXACTLY ONE of which is me
+            self.db.loan(from_user,from_vault,to_user,to_vault,amount,reason)
+        except:
+            if(from_user==self.username):
+                messagebox.showerror("Unsuccessful Loaning Transaction",f"Failed to loan {to_user.upper()}, {amount}EGP")
+            elif(to_user==self.username):
+                messagebox.showerror("Unsuccessful Loaning Transbaction",f'''Failed to be loaned by {from_user.upper()}, {amount}EGP
+                                     maybe they lacked the money''')
+            else:
+                messagebox.showerror("Unsuccessful Loaning Transaction","how did this even happen??? report a bug")
+        else:
+            messagebox.showinfo("Successful Loaning Transaction",f"Loan was successful from {to_user} to {to_user}, {amount}EGP")
     def add_outside_user(self):
         self.destory_all_widgets()
         def add_user_then_back():
