@@ -228,8 +228,8 @@ class GUI:
         self.to_vault_label.grid(row=2,column=0, padx=5)
         to_vault = StringVar(self.master)
         to_vault.set(to_vault_names[0])
-        self.to_vault_options = OptionMenu(self.master,to_vault,*to_vault_names)
-        self.to_vault_options.grid(row=2,column=1)
+        self.from_vault_options = OptionMenu(self.master,to_vault,*to_vault_names)
+        self.from_vault_options.grid(row=2,column=1)
 
         self.amount_label = Label(self.master, text="Amount:")
         self.amount_label.grid(row=3,column=0, pady=2)
@@ -252,9 +252,9 @@ class GUI:
         def refresh_to_user_vault_names(username):
             to_vault_names = self.db.get_user_vault_names(username)
             to_vault.set(to_vault_names[0])
-            self.to_vault_options['menu'].delete(0,'end')
+            self.from_vault_options['menu'].delete(0,'end')
             for vault in to_vault_names:
-                self.to_vault_options['menu'].add_command(label=vault,command=lambda v=vault: to_vault.set(v))
+                self.from_vault_options['menu'].add_command(label=vault,command=lambda v=vault: to_vault.set(v))
         def refresh_from_user_vault_names(username):
             from_vault_names = self.db.get_user_vault_names(username)
             from_vault.set(from_vault_names[0])
@@ -290,14 +290,15 @@ class GUI:
         self.from_user_label.grid(row=0,column=0, padx=5)
         from_user = StringVar(self.master)
         from_user.set(self.username)
-        self.from_user_options = OptionMenu(self.master,from_user,*usernames,command=lambda x:refresh_from_user_vault_names(from_user.get()))
+        self.from_user_options = OptionMenu(self.master,from_user,*self.db.get_usernames(), command=lambda username:refresh_from_user_vault_names(username))
         self.from_user_options.grid(row=0,column=1)
 
-        self.from_vault_label = Label(self.master, text="From:")
+        from_vault_names = self.db.get_user_vault_names(from_user.get())
+        self.from_vault_label = Label(self.master, text="From vault:")
         self.from_vault_label.grid(row=1,column=0, padx=5)
         from_vault = StringVar(self.master)
-        from_vault.set(vault_names[0])
-        self.from_vault_options = OptionMenu(self.master,from_vault,*vault_names)
+        from_vault.set(from_vault_names[0])
+        self.from_vault_options = OptionMenu(self.master,from_vault,*from_vault_names)
         self.from_vault_options.grid(row=1,column=1)
         
         #self.add_outside_user_button = Button(self.master,text="Add outside user",command=lambda: self.add_outside_user())
@@ -328,7 +329,7 @@ class GUI:
         self.reason_entry.grid(row=6,column=1,pady=2)
 
         self.submit_button = Button(self.master, text="Loan", 
-                                    command=lambda: self.process_loan(from_user.get(),from_vault.get(),to_user.get(),to_vault.get(),
+                                    command=lambda: self.process_loan(from_user.get(),from_vault.get(),to_user.get(),from_vault.get(),
                                                                           self.amount_entry.get(),self.reason_entry.get()))
         self.submit_button.grid(row=7,column=1, pady=10)
 
@@ -340,13 +341,13 @@ class GUI:
             to_vault.set(to_vault_names[0])
             self.to_vault_options['menu'].delete(0,'end')
             for vault in to_vault_names:
-                self.to_vault_options['menu'].add_command(label=vault,command=lambda:tk._setit(to_vault,vault))
+                self.to_vault_options['menu'].add_command(label=vault,command=lambda v=vault: to_vault.set(v))
         def refresh_from_user_vault_names(username):
             from_vault_names = self.db.get_user_vault_names(username)
             from_vault.set(from_vault_names[0])
             self.from_vault_options['menu'].delete(0,'end')
             for vault in from_vault_names:
-                self.from_vault_options['menu'].add_command(label=vault,command=lambda:tk._setit(from_vault,vault))
+                self.from_vault_options['menu'].add_command(label=vault,command=lambda v=vault: from_vault.set(v))
     def process_loan(self,from_user,from_vault,to_user,to_vault,amount,reason=None):
         if(from_user!=self.username and to_user!=self.username):
             messagebox.showwarning("invalid users", "One of the users has to be you!!")   
