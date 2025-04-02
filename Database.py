@@ -217,7 +217,7 @@ class Database:
         unit_id = self.get_unit_id(unit)
         self.c.execute('''INSERT INTO transactions 
                        (vault_id, transaction_type,amount,category_id, description, quantity,unit_id,date)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now','localtime'))
                   ''', 
                 (vault_id,transaction_type,money_amount,category_id,description.lower(),quantity,unit_id))
         self.conn.commit()
