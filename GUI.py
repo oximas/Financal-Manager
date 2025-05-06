@@ -1,6 +1,6 @@
 import tkinter as tk
 import customtkinter as ctk
-from customtkinter import *
+from customtkinter import * # type: ignore
 from tkinter import * # type: ignore
 from tkinter import messagebox
 from Database import Database as DB
@@ -20,10 +20,21 @@ class GUI:
         self.master.geometry(f"{self.default_width}x{self.default_height}")
         self.master.configure(fg_color="#000000") 
 
+        #zoom variables 
+        self.zoom_level = 1.0  # Default zoom (100%)
+        self.min_zoom = 0.8    # 80% minimum zoom
+        self.max_zoom = 2.0    # 200% maximum zoom
+        self.master.bind("<Control-MouseWheel>", self.zoom_handler)  # Windows/Linux
+        self.master.bind("<Control-Button-4>", self.zoom_handler)    # Mac (up)
+        self.master.bind("<Control-Button-5>", self.zoom_handler)    # Mac (down)
+        # Store widgets that need zooming
+        self.zoomable_widgets = {}
         self.main_menu()  # Calls the menu with login/signup options
+        #self.username="Home"
+        #self.transaction_menu("Withdraw")
 
     def main_menu(self):
-        self.destory_all_widgets()
+        self.destroy_all_widgets()
         self.master.title("Finance Manager - Welcome")
 
         self.login_button = CTkButton(self.master, text="Login", command=self.login_menu, width=200)
@@ -34,7 +45,7 @@ class GUI:
 
         self.window_resize()
     def login_menu(self):
-        self.destory_all_widgets()
+        self.destroy_all_widgets()
         self.master.title("Login")
 
         # Username
@@ -62,7 +73,7 @@ class GUI:
         self.window_resize()
 
     def signup_menu(self):
-        self.destory_all_widgets()
+        self.destroy_all_widgets()
         self.master.title("Sign Up")
 
         # Username
@@ -117,7 +128,7 @@ class GUI:
         self.user_menu()
 
     def user_menu(self):
-        self.destory_all_widgets()
+        self.destroy_all_widgets()
 
         self.master.title(f"Finance Manager - {self.username.capitalize()}")  # Show the username in the title
 
@@ -148,71 +159,134 @@ class GUI:
         self.transaction_menu("Withdraw")
 
     def transaction_menu(self, transaction_type):
-        self.destory_all_widgets()
+        self.destroy_all_widgets()
 
-        self.master.title(f"{transaction_type} Menu")
+        # Configure rows and columns to expand
+        self.master.grid_rowconfigure(0, weight=1)  # Add weight to the top row
+        self.master.grid_rowconfigure(100, weight=1)  # Add weight to the bottom row
+        self.master.grid_columnconfigure(0, weight=1)  # Add weight to the left column
+        self.master.grid_columnconfigure(2, weight=1)  # Add weight to the right column
 
-        self.amount_label = CTkLabel(self.master, text="Money Amount:")
-        self.amount_label.pack(pady=2)
-        self.amount_entry = CTkEntry(self.master)
-        self.amount_entry.pack(pady=2)
+        # Create a central frame to hold all widgets
+        central_frame = CTkFrame(self.master)
+        central_frame.grid(row=1, column=1, sticky="nsew")  # Center the frame
 
-        self.category_label = CTkLabel(self.master, text="Category:")
-        self.category_label.pack()
+        # Add a title label inside the central frame
+        title_label = CTkLabel(
+            central_frame,
+            text=f"{transaction_type} Menu",
+            font=("Arial", 24, "bold"),  # Larger font size and bold style
+            text_color="#111",  # Dark gray color for contrast
+            anchor="center"  # Center-align the text
+        )
+        title_label.grid(row=0, column=0, columnspan=2, pady=(20, 10))  # Add padding for spacing
+
+        # Row index for grid placement inside the central frame
+        row_index = 1  # Start below the title
+
+        # Money Amount
+        amount_label = CTkLabel(central_frame, text="Money Amount:")
+        amount_label.grid(row=row_index, column=0, sticky="e", padx=10, pady=5)
+        amount_entry = CTkEntry(central_frame)
+        amount_entry.grid(row=row_index, column=1, padx=10, pady=5)
+        row_index += 1
+
+        # Category
+        category_label = CTkLabel(central_frame, text="Category:")
+        category_label.grid(row=row_index, column=0, sticky="e", padx=10, pady=5)
         category_names = self.db.get_category_names()
-        #category_names = [name for name in category_names if isinstance(name, str) and name != "Others"]
-
-        chosen_category = StringVar(self.master)
+        chosen_category = StringVar(central_frame)
         chosen_category.set(category_names[0] if len(category_names) else "Please add more categories")
-        self.category_options = CTkComboBox(self.master,variable=chosen_category, values=category_names)
-        self.category_options.pack()
+        category_options = CTkComboBox(central_frame, variable=chosen_category, values=category_names)
+        category_options.grid(row=row_index, column=1, padx=10, pady=5)
+        row_index += 1
 
-        self.description_label = CTkLabel(self.master, text="Description:")
-        self.description_label.pack(pady=2)
-        self.description_entry = CTkEntry(self.master)
-        self.description_entry.pack(pady=2)
+        # Description
+        description_label = CTkLabel(central_frame, text="Description:")
+        description_label.grid(row=row_index, column=0, sticky="e", padx=10, pady=5)
+        description_entry = CTkEntry(central_frame)
+        description_entry.grid(row=row_index, column=1, padx=10, pady=5)
+        row_index += 1
 
-        if(transaction_type=="Withdraw"):
-            self.quantity_label = CTkLabel(self.master, text="Quantity:")
-            self.quantity_label.pack(pady=2)
-            self.quantity_entry = CTkEntry(self.master)
-            self.quantity_entry.pack(pady=2)
+        # Withdraw-specific fields
+        if transaction_type == "Withdraw":
+            # Quantity
+            quantity_label = CTkLabel(central_frame, text="Quantity:")
+            quantity_label.grid(row=row_index, column=0, sticky="e", padx=10, pady=5)
+            quantity_entry = CTkEntry(central_frame)
+            quantity_entry.grid(row=row_index, column=1, padx=10, pady=5)
+            row_index += 1
 
-            self.unit_label = CTkLabel(self.master, text="Unit:")
-            self.unit_label.pack()
+            # Unit
+            unit_label = CTkLabel(central_frame, text="Unit:")
+            unit_label.grid(row=row_index, column=0, sticky="e", padx=10, pady=5)
             unit_names = self.db.get_unit_names()
-            chosen_unit = StringVar(self.master)
+            chosen_unit = StringVar(central_frame)
             chosen_unit.set(unit_names[0] if len(unit_names) else "Please add more units")
-            self.unit_options = CTkComboBox(self.master, variable=chosen_unit, values=unit_names)
-            self.unit_options.pack()
+            unit_options = CTkComboBox(central_frame, variable=chosen_unit, values=unit_names)
+            unit_options.grid(row=row_index, column=1, padx=10, pady=5)
+            row_index += 1
 
-        self.vault_label = CTkLabel(self.master, text="Vault:")
-        self.vault_label.pack()
-        chosen_vault = StringVar(self.master)
+        # Vault
+        vault_label = CTkLabel(central_frame, text="Vault:")
+        vault_label.grid(row=row_index, column=0, sticky="e", padx=10, pady=5)
+        chosen_vault = StringVar(central_frame)
         chosen_vault.set("Main")
-        self.vault_options = CTkComboBox(self.master, variable=chosen_vault, values=self.db.get_user_vault_names(self.username))
-        self.vault_options.pack(pady=2)
+        vault_options = CTkComboBox(central_frame, variable=chosen_vault, values=self.db.get_user_vault_names(self.username))
+        vault_options.grid(row=row_index, column=1, padx=10, pady=5)
+        row_index += 1
 
-        if(transaction_type=="Withdraw"):
-            self.submit_button = CTkButton(self.master, text=transaction_type, fg_color="#98FB98", text_color="black", 
-                                            command=lambda: self.process_transaction(transaction_type, chosen_vault.get(),
-                                                                                    self.amount_entry.get(), chosen_category.get(),
-                                                                                    self.description_entry.get(), self.quantity_entry.get(),
-                                                                                    chosen_unit.get()))
-        elif transaction_type=="Deposit":
-            self.submit_button = CTkButton(self.master, text=transaction_type,  fg_color="#98FB98", text_color="black",
-                                            command=lambda: self.process_transaction(transaction_type, chosen_vault.get(),
-                                                                                    self.amount_entry.get(), chosen_category.get(),
-                                                                                    self.description_entry.get()))
+        # Submit Button (Stretched Across Screen)
+        if transaction_type == "Withdraw":
+            submit_button = CTkButton(
+                central_frame,
+                text=transaction_type,
+                fg_color="#98FB98",
+                text_color="black",
+                command=lambda: self.process_transaction(
+                    transaction_type,
+                    chosen_vault.get(),
+                    amount_entry.get(),
+                    chosen_category.get(),
+                    description_entry.get(),
+                    quantity_entry.get(),
+                    chosen_unit.get()
+                )
+            )
+        elif transaction_type == "Deposit":
+            submit_button = CTkButton(
+                central_frame,
+                text=transaction_type,
+                fg_color="#98FB98",
+                text_color="black",
+                command=lambda: self.process_transaction(
+                    transaction_type,
+                    chosen_vault.get(),
+                    amount_entry.get(),
+                    chosen_category.get(),
+                    description_entry.get()
+                )
+            )
         else:
-            raise ValueError("transaction type must be 'Withdraw' or 'Deposit' ")
+            raise ValueError("Transaction type must be 'Withdraw' or 'Deposit'")
+        
+        submit_button.grid(row=row_index, column=0, columnspan=2, sticky="ew", pady=10)
+        row_index += 1
 
-        self.submit_button.pack(pady=10)
+        # Back Button (Stretched Across Screen)
+        back_button = CTkButton(
+            central_frame,
+            text="Back",
+            fg_color="#444",
+            text_color="white",
+            command=lambda: self.user_menu()
+        )
+        back_button.grid(row=row_index, column=0, columnspan=2, sticky="ew", pady=5)
 
-        self.back_button = CTkButton(self.master, text="Back",fg_color="#444", text_color="white", command=lambda: self.user_menu())
-        self.back_button.pack(pady=2)
-
+        # Resize window
         self.window_resize()
+        for widget in self.master.winfo_children():
+            self.zoomable_widgets[f"{widget}"] = widget
 
 
     def process_transaction(self, transaction_type,vault,money_amount,category_name,description,quantity=None,unit=None):
@@ -233,100 +307,139 @@ class GUI:
         
 
     def transfer_menu(self):
-        self.destory_all_widgets()
+        self.destroy_all_widgets()
         self.master.title("Transfer Menu")
+
+        # Configure rows and columns to expand
+        self.master.grid_rowconfigure(0, weight=1)  # Add weight to the top row
+        self.master.grid_rowconfigure(100, weight=1)  # Add weight to the bottom row
+        self.master.grid_columnconfigure(0, weight=1)  # Add weight to the left column
+        self.master.grid_columnconfigure(2, weight=1)  # Add weight to the right column
+
+        # Create a central frame to hold all widgets
+        central_frame = ctk.CTkFrame(self.master)
+        central_frame.grid(row=1, column=1, sticky="nsew")  # Center the frame
+
+        # Add a title label inside the central frame
+        title_label = ctk.CTkLabel(
+            central_frame,
+            text="Transfer Menu",
+            font=("Arial", 24, "bold"),
+            text_color="#111",  # Dark gray color for contrast
+            anchor="center"
+        )
+        title_label.grid(row=0, column=0, columnspan=2, pady=(20, 10))  # Add padding for spacing
+
+        # Row index for grid placement inside the central frame
+        row_index = 1  # Start below the title
 
         # Fetch vaults for current user
         from_vault_names = self.db.get_user_vault_names(self.username)
 
         # "From" Vault Selection
-        self.from_vault_label = ctk.CTkLabel(self.master, text="From:", text_color="white")
-        self.from_vault_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        from_vault_label = ctk.CTkLabel(central_frame, text="From:", text_color="white")
+        from_vault_label.grid(row=row_index, column=0, padx=5, pady=5, sticky="e")
 
-        from_vault = StringVar(self.master)
-        from_vault.set(from_vault_names[0])
-        self.from_vault_options = ctk.CTkComboBox(self.master, variable=from_vault, values=from_vault_names)
-        self.from_vault_options.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        from_vault = StringVar(central_frame)
+        from_vault.set(from_vault_names[0] if from_vault_names else "No Vaults Available")
+        from_vault_options = ctk.CTkComboBox(central_frame, variable=from_vault, values=from_vault_names)
+        from_vault_options.grid(row=row_index, column=1, padx=5, pady=5, sticky="ew")
+        row_index += 1
 
         # "To User" Selection
-        self.to_user_label = ctk.CTkLabel(self.master, text="To user:", text_color="white")
-        self.to_user_label.grid(row=1, column=0, padx=5, pady=5, sticky="w")
+        to_user_label = ctk.CTkLabel(central_frame, text="To User:", text_color="white")
+        to_user_label.grid(row=row_index, column=0, padx=5, pady=5, sticky="e")
 
-        to_user = StringVar(self.master)
+        to_user = StringVar(central_frame)
         to_user.set(self.username)
-        self.to_user_options = ctk.CTkComboBox(
-            self.master, variable=to_user, values=self.db.get_usernames(),
+        to_user_options = ctk.CTkComboBox(
+            central_frame,
+            variable=to_user,
+            values=self.db.get_usernames(),
             command=lambda username: refresh_to_user_vault_names(username)
         )
-        self.to_user_options.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
+        to_user_options.grid(row=row_index, column=1, padx=5, pady=5, sticky="ew")
+        row_index += 1
 
         # Fetch vaults for selected user
         to_vault_names = self.db.get_user_vault_names(to_user.get())
 
         # "To Vault" Selection
-        self.to_vault_label = ctk.CTkLabel(self.master, text="To vault:", text_color="white")
-        self.to_vault_label.grid(row=2, column=0, padx=5, pady=5, sticky="w")
+        to_vault_label = ctk.CTkLabel(central_frame, text="To Vault:", text_color="white")
+        to_vault_label.grid(row=row_index, column=0, padx=5, pady=5, sticky="e")
 
-        to_vault = StringVar(self.master)
-        to_vault.set(to_vault_names[0])
-        self.to_vault_options = ctk.CTkComboBox(self.master, variable=to_vault, values=to_vault_names)
-        self.to_vault_options.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
+        to_vault = StringVar(central_frame)
+        to_vault.set(to_vault_names[0] if to_vault_names else "No Vaults Available")
+        to_vault_options = ctk.CTkComboBox(central_frame, variable=to_vault, values=to_vault_names)
+        to_vault_options.grid(row=row_index, column=1, padx=5, pady=5, sticky="ew")
+        row_index += 1
 
         # "Amount" Entry
-        self.amount_label = ctk.CTkLabel(self.master, text="Amount:", text_color="white")
-        self.amount_label.grid(row=3, column=0, padx=5, pady=5, sticky="w")
+        amount_label = ctk.CTkLabel(central_frame, text="Amount:", text_color="white")
+        amount_label.grid(row=row_index, column=0, padx=5, pady=5, sticky="e")
 
-        self.amount_entry = ctk.CTkEntry(self.master, placeholder_text="Enter amount")
-        self.amount_entry.grid(row=3, column=1, padx=5, pady=5, sticky="ew")
+        amount_entry = ctk.CTkEntry(central_frame, placeholder_text="Enter amount")
+        amount_entry.grid(row=row_index, column=1, padx=5, pady=5, sticky="ew")
+        row_index += 1
 
         # "Reason" Entry
-        self.reason_label = ctk.CTkLabel(self.master, text="Reason (optional):", text_color="white")
-        self.reason_label.grid(row=4, column=0, padx=5, pady=5, sticky="w")
+        reason_label = ctk.CTkLabel(central_frame, text="Reason (optional):", text_color="white")
+        reason_label.grid(row=row_index, column=0, padx=5, pady=5, sticky="e")
 
-        self.reason_entry = ctk.CTkEntry(self.master, placeholder_text="Enter reason (optional)")
-        self.reason_entry.grid(row=4, column=1, padx=5, pady=5, sticky="ew")
+        reason_entry = ctk.CTkEntry(central_frame, placeholder_text="Enter reason (optional)")
+        reason_entry.grid(row=row_index, column=1, padx=5, pady=5, sticky="ew")
+        row_index += 1
 
         # "Transfer" Button
-        self.submit_button = ctk.CTkButton(
-            self.master, text="Transfer", fg_color="#98FB98", text_color="black",
+        submit_button = ctk.CTkButton(
+            central_frame,
+            text="Transfer",
+            fg_color="#98FB98",
+            text_color="black",
             command=lambda: self.process_transfer(
                 from_vault.get(), to_user.get(), to_vault.get(),
-                self.amount_entry.get(), self.reason_entry.get()
+                amount_entry.get(), reason_entry.get()
             )
         )
-        self.submit_button.grid(row=5, column=1, padx=5, pady=10, sticky="ew")
+        submit_button.grid(row=row_index, column=0, columnspan=2, pady=10, sticky="ew")
+        row_index += 1
 
         # "Back" Button
-        self.back_button = ctk.CTkButton(
-            self.master, text="Back", fg_color="#444", text_color="white", command=self.user_menu
+        back_button = ctk.CTkButton(
+            central_frame,
+            text="Back",
+            fg_color="#444",
+            text_color="white",
+            command=self.user_menu
         )
-        self.back_button.grid(row=6, column=1, padx=5, pady=5, sticky="ew")
+        back_button.grid(row=row_index, column=0, columnspan=2, pady=5, sticky="ew")
 
+        # Resize window
         self.window_resize()
 
         def refresh_to_user_vault_names(username):
             """ Refresh the vault options for the selected recipient user. """
             to_vault_names = self.db.get_user_vault_names(username)
-            
+
             # Ensure there are available vaults
             if to_vault_names:
                 to_vault.set(to_vault_names[0])  # Set default value
-                self.to_vault_options.configure(values=to_vault_names)  # type: ignore # Update dropdown options
+                to_vault_options.configure(values=to_vault_names)  # Update dropdown options
             else:
-                to_vault.set("No Vaults")  # Set default value if empty
-                self.to_vault_options.configure(values=["No Vaults Available"])# type: ignore
+                to_vault.set("No Vaults Available")  # Set default value if empty
+                to_vault_options.configure(values=["No Vaults Available"])
 
         def refresh_from_user_vault_names(username):
             """ Refresh the vault options for the sender user. """
             from_vault_names = self.db.get_user_vault_names(username)
-            
+
             # Ensure there are available vaults
             if from_vault_names:
                 from_vault.set(from_vault_names[0])  # Set default value
-                self.from_vault_options.configure(values=from_vault_names)  # Update dropdown options # type: ignore
+                from_vault_options.configure(values=from_vault_names)  # Update dropdown options
             else:
-                from_vault.set("No Vaults")  # Set default value if empty
-                self.from_vault_options.configure(values=["No Vaults Available"])# type: ignore
+                from_vault.set("No Vaults Available")  # Set default value if empty
+                from_vault_options.configure(values=["No Vaults Available"])
 
 
 
@@ -347,7 +460,7 @@ class GUI:
 
 
     def loan_menu(self):
-        self.destory_all_widgets()
+        self.destroy_all_widgets()
 
         self.master.title("Loan Menu")
 
@@ -456,7 +569,7 @@ class GUI:
         else:
             messagebox.showinfo("Successful Loaning Transaction",f"Loan was successful from {to_user} to {to_user}, {amount}EGP")
     def add_outside_user(self):
-        self.destory_all_widgets()
+        self.destroy_all_widgets()
         def add_user_then_back():
             username = self.add_user_entry.get()
             if not username:
@@ -480,44 +593,54 @@ class GUI:
         self.add_user_button.grid(row=1,column=0,columnspan=2)
         
 
+    
     def summary_menu(self):
-        for widget in self.master.winfo_children():
-            widget.destroy()
+        self.destroy_all_widgets()
 
         self.master.title("Summary Menu")
-        self.total_label = CTkLabel(self.master, text=f"Total Amount: {self.db.get_user_balance(self.username):.2f} EGP")
-        self.total_label.pack(pady=10)
-
-        # Display vault details
-        self.vault_details_label = CTkLabel(self.master, text="Vault Details:")
-        self.vault_details_label.pack(pady=2)
+        
+        # Main container frame with sleek design
+        container = CTkFrame(self.master, corner_radius=15, fg_color="#222")
+        container.pack(pady=20, padx=30, fill='both', expand=True)
+        
+        # Total Balance Label with a modern font
+        self.total_label = CTkLabel(container, text=f"Total Amount: {self.db.get_user_balance(self.username):.2f} EGP", 
+                                    font=("Helvetica", 18, "bold"), text_color="#00FFC6")
+        self.total_label.pack(pady=15)
+        
+        # Vault Details Section
+        vault_frame = CTkFrame(container, corner_radius=10, fg_color="#333")
+        vault_frame.pack(pady=10, padx=10, fill='x')
+        CTkLabel(vault_frame, text="Vault Details:", font=("Helvetica", 16, "bold"), text_color="#FFFFFF").pack(pady=5)
         vaults = self.db.get_user_vaults(self.username)
-        for vault_name,balance in vaults.items():
-            vault_info = f"{vault_name}: {balance:.2f} EGP"
-            CTkLabel(self.master, text=vault_info).pack(pady=2)
-
-        # Display loan information
-        self.loan_details_label = CTkLabel(self.master, text="Loan Details:")
-        self.loan_details_label.pack(pady=2)
-        loans= self.db.get_loans(self.username)
+        for vault_name, balance in vaults.items():
+            CTkLabel(vault_frame, text=f"{vault_name}: {balance:.2f} EGP", text_color="#BBBBBB").pack(pady=3)
+        
+        # Loan Details Section
+        loan_frame = CTkFrame(container, corner_radius=10, fg_color="#333")
+        loan_frame.pack(pady=10, padx=10, fill='x')
+        CTkLabel(loan_frame, text="Loan Details:", font=("Helvetica", 16, "bold"), text_color="#FFFFFF").pack(pady=5)
+        loans = self.db.get_loans(self.username)
         owes = "owes"
-        for from_user,to_user,amount in loans:
+        for from_user, to_user, amount in loans:
             if to_user == self.username:
-                to_user="YOU"
+                to_user = "YOU"
                 owes = "owe"
             if from_user == self.username:
-                from_user="YOU"
-            loan_info = f"{to_user.upper()} {owes} {from_user.upper()} {amount:.2f}EGB"
-            CTkLabel(self.master, text=loan_info).pack(pady=2)
-
-        self.back_button = CTkButton(self.master, text="Back",fg_color="#444", text_color="white", command=lambda: self.user_menu())
-        self.back_button.pack(pady=10)
-
+                from_user = "YOU"
+            CTkLabel(loan_frame, text=f"{to_user.upper()} {owes} {from_user.upper()} {amount:.2f} EGP", text_color="#BBBBBB").pack(pady=3)
+        
+        # Back Button with a sleek look
+        self.back_button = CTkButton(container, text="Back", fg_color="#00FFC6", text_color="#111", 
+                                    font=("Helvetica", 14, "bold"), corner_radius=12, command=lambda: self.user_menu())
+        self.back_button.pack(pady=20)
+        
         self.window_resize()
 
+
     def account_menu(self):
-        for widget in self.master.winfo_children():
-            widget.destroy()
+        self.destroy_all_widgets()
+
         self.username_label = CTkLabel(self.master,text=f"Username: {self.username}")
         self.username_label.pack(pady=2)
 
@@ -562,7 +685,7 @@ class GUI:
             messagebox.showerror("couldn't export into excel",'''close any instancesof the file, 
                                                                 and make sure you have write permissions''')
          
-    def destory_all_widgets(self):
+    def destroy_all_widgets(self):
          for widget in self.master.winfo_children():
             widget.destroy()
     def window_resize(self):
@@ -572,7 +695,62 @@ class GUI:
         margin = 20
         self.master.geometry(f"{max(width+margin,self.default_width)}x{max(height+margin,self.default_height)}")
 
+    def zoom_handler(self, event):
+        # Determine zoom direction (1 for up, -1 for down)
+        delta = 1 if (event.delta > 0 or event.num == 4) else -1
+        
+        # Calculate new zoom level (with constraints)
+        new_zoom = self.zoom_level + (delta * 0.1)  # 10% per step
+        new_zoom = max(self.min_zoom, min(self.max_zoom, new_zoom))
+        
+        if new_zoom != self.zoom_level:
+            self.zoom_level = new_zoom
+            self.apply_zoom()
 
+    def apply_zoom(self):
+        """Applies zoom level to all tracked widgets"""
+        try:
+            for widget_name, widget in self.zoomable_widgets.items():
+                # Skip if widget is destroyed or not available
+                if not widget.winfo_exists():
+                    continue
+
+                # 1. FONT SCALING
+                if hasattr(widget, 'configure') and 'font' in widget.configure():
+                    current_font = widget.cget('font')
+                    
+                    # Handle different font formats
+                    if isinstance(current_font, (tuple, list)):
+                        # Case 1: ('Arial', 12) or ('Arial', 12, 'bold')
+                        font_parts = list(current_font)
+                        if len(font_parts) >= 2 and isinstance(font_parts[1], (int, float)):
+                            font_parts[1] = int(font_parts[1] * self.zoom_level)
+                            widget.configure(font=tuple(font_parts))
+                    elif isinstance(current_font, str):
+                        # Case 2: "Arial 12 bold" (less common in CTkinter)
+                        pass  # Add string parsing if needed
+
+                # 2. WIDGET DIMENSIONS
+                for dimension in ['height', 'width']:
+                    if hasattr(widget, 'configure') and dimension in widget.configure():
+                        current_val = widget.cget(dimension)
+                        if isinstance(current_val, (int, float)):
+                            widget.configure(**{dimension: int(current_val * self.zoom_level)})
+
+                # 3. SPECIAL CASES
+                if isinstance(widget, ctk.CTkFrame):
+                    # Scale internal padding for frames
+                    for child in widget.winfo_children():
+                        child.grid_configure(
+                            padx=int(10 * self.zoom_level),
+                            pady=int(5 * self.zoom_level)
+                        )
+                
+                
+
+        except Exception as e:
+            print(f"Zoom error on {widget_name}: {str(e)}")
+                    
 # Main Application
 root = CTk()
 app = GUI(root)
