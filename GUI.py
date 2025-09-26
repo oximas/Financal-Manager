@@ -674,7 +674,7 @@ class GUI:
         self.window_resize()
     def add_vault(self):
         pass
-        """ask_new_name = CTkInputDialog(text="New vault name is:", title="Add new vault")
+        ask_new_name = CTkInputDialog(text="New vault name is:", title="Add new vault")
         new_vault_name = ask_new_name.get_input()
         new_vault_name=new_vault_name.capitalize()
         if new_vault_name:
@@ -686,8 +686,8 @@ class GUI:
                 messagebox.showinfo("Success", f"Vault '{new_vault_name}' added successfully!")
 
         elif new_vault_name=="":
-            messagebox.showerror("Error", "Vault name can't be empty")"
-            """
+            messagebox.showerror("Error", "Vault name can't be empty")
+            
     def export_to_excel(self):
         # Replace with actual functionality
         print("Export to Excel called")
