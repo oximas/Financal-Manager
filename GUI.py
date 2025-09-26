@@ -143,8 +143,6 @@ class GUI:
         self.transfer_button = CTkButton(self.master, text="Transfer", command=self.transfer_menu)
         self.transfer_button.pack(pady=2)
 
-        self.loan_button = CTkButton(self.master, text="Loan", command=self.loan_menu)
-        self.loan_button.pack(pady=2)
 
         self.summary_button = CTkButton(self.master, text="Summary", command=self.summary_menu)
         self.summary_button.pack(pady=2)
@@ -471,72 +469,7 @@ class GUI:
 
 
 
-    def loan_menu(self):
-        self.destroy_all_widgets()
-
-        self.master.title("Loan Menu")
-
-        vault_names = self.db.get_user_vault_names(self.username)
-        usernames = self.db.get_usernames()
-
-        self.from_user_label = CTkLabel(self.master, text="From user:")
-        self.from_user_label.grid(row=0, column=0, padx=5)
-        
-        self.from_user = StringVar(self.master)
-        self.from_user.set(self.username)
-        self.from_user_options =CTkComboBox(self.master, variable=self.from_user, values=usernames, 
-                                            command=self.refresh_from_user_vault_names)
-        self.from_user_options.grid(row=0, column=1)
-
-        from_vault_names = self.db.get_user_vault_names(self.from_user.get())
-        self.from_vault_label = CTkLabel(self.master, text="From vault:")
-        self.from_vault_label.grid(row=1, column=0, padx=5)
-        
-        self.from_vault = StringVar(self.master)
-        self.from_vault.set(from_vault_names[0] if from_vault_names else "No Vaults")
-        self.from_vault_options = CTkComboBox(self.master, variable=self.from_vault, values=from_vault_names or ["No Vaults"])
-        self.from_vault_options.grid(row=1, column=1)
-
-        self.to_user_label = CTkLabel(self.master, text="To user:")
-        self.to_user_label.grid(row=3, column=0, padx=5)
-        
-        self.to_user = StringVar(self.master)
-        self.to_user.set(self.username)
-        self.to_user_options = CTkComboBox(self.master, variable=self.to_user, values=usernames, 
-                                            command=self.refresh_to_user_vault_names)
-        self.to_user_options.grid(row=3, column=1)
-
-        to_vault_names = self.db.get_user_vault_names(self.to_user.get())
-        self.to_vault_label = CTkLabel(self.master, text="To vault:")
-        self.to_vault_label.grid(row=4, column=0, padx=5)
-        
-        self.to_vault = StringVar(self.master)
-        self.to_vault.set(to_vault_names[0] if to_vault_names else "No Vaults")
-        self.to_vault_options = CTkComboBox(self.master, variable=self.to_vault, values=to_vault_names or ["No Vaults"])
-        self.to_vault_options.grid(row=4, column=1)
-
-        self.amount_label = CTkLabel(self.master, text="Amount:")
-        self.amount_label.grid(row=5, column=0, pady=2)
-        self.amount_entry = CTkEntry(self.master,placeholder_text="Enter amount")
-        self.amount_entry.grid(row=5, column=1, pady=2, padx=3)
-
-        self.reason_label = CTkLabel(self.master, text="Reason (not required):")
-        self.reason_label.grid(row=6, column=0, pady=2)
-        self.reason_entry = CTkEntry(self.master,placeholder_text="Enter reason (optional)")
-        self.reason_entry.grid(row=6, column=1, pady=2)
-
-        self.submit_button = CTkButton(self.master, text="Loan",  fg_color="#98FB98", text_color="black",
-                                    command=lambda: self.process_loan(
-                                        self.from_user.get(), self.from_vault.get(), 
-                                        self.to_user.get(), self.to_vault.get(),
-                                        self.amount_entry.get(), self.reason_entry.get()
-                                    ))
-        self.submit_button.grid(row=7, column=1, pady=10)
-
-        self.back_button = CTkButton(self.master, text="Back",fg_color="#444", text_color="white", command=lambda: self.user_menu())
-        self.back_button.grid(row=8, column=1, pady=2)
-
-        self.window_resize()
+    
 
     def refresh_to_user_vault_names(self, username):
         """ Refresh the vault options for the selected recipient user. """
@@ -558,51 +491,8 @@ class GUI:
             self.from_vault.set("No Vaults")  # Set fallback value
             self.from_vault_options.configure(values=["No Vaults"])
 
-    def process_loan(self,from_user,from_vault,to_user,to_vault,amount,reason=None):
-        #Feature needed: if from user is not me probably adding a password check would be valid
-        #afer that showing the user the ammount of money available then confirming the transaction
-        try:
-            if(from_user!=self.username and to_user!=self.username):
-                messagebox.showwarning("invalid users", "One of the users has to be you!!")
-                return
-            if(from_user==to_user): # they both would equal to me if thats the case
-                messagebox.showwarning("Invalid Users", "Can't loan yourself  from yourself, silly! :)")   
-                return
-            # from here there are two users EXACTLY ONE of which is me
-            self.db.loan(from_user,from_vault,to_user,to_vault,amount,reason)
-        except:
-            if(from_user==self.username):
-                messagebox.showerror("Unsuccessful Loaning Transaction",f"Failed to loan {to_user.upper()}, {amount}EGP")
-            elif(to_user==self.username):
-                messagebox.showerror("Unsuccessful Loaning Transbaction",f'''Failed to be loaned by {from_user.upper()}, {amount}EGP
-                                     maybe they lacked the money''')
-            else:
-                messagebox.showerror("Unsuccessful Loaning Transaction","how did this even happen??? report a bug")
-        else:
-            messagebox.showinfo("Successful Loaning Transaction",f"Loan was successful from {to_user} to {to_user}, {amount}EGP")
-    def add_outside_user(self):
-        self.destroy_all_widgets()
-        def add_user_then_back():
-            username = self.add_user_entry.get()
-            if not username:
-                messagebox.showerror("invalid username","username can't be empty")
-                return
-            if self.db.user_exists(username):
-                messagebox.showerror("invalid username","username already exists")
-                return
-                
-            self.db.add_user(self.add_user_entry.get())
-            self.loan_menu() #change later if you had to add a fake user from a different place
-        self.master.title("Adding outside user")
-        
-        self.add_user_label = CTkLabel(self.master,text="username:")
-        self.add_user_label.grid(row=0,column=0)
-        self.add_user_entry = Entry(self.master)
-        self.add_user_entry.grid(row=0,column=1)
-        
-        self.add_user_button = CTkButton(self.master,text="Add User",
-                                      command=add_user_then_back)
-        self.add_user_button.grid(row=1,column=0,columnspan=2)
+
+    
         
 
     
@@ -628,20 +518,7 @@ class GUI:
         for vault_name, balance in vaults.items():
             CTkLabel(vault_frame, text=f"{vault_name}: {balance:.2f} EGP", text_color="#BBBBBB").pack(pady=3)
         
-        # Loan Details Section
-        loan_frame = CTkFrame(container, corner_radius=10, fg_color="#333")
-        loan_frame.pack(pady=10, padx=10, fill='x')
-        CTkLabel(loan_frame, text="Loan Details:", font=("Helvetica", 16, "bold"), text_color="#FFFFFF").pack(pady=5)
-        loans = self.db.get_loans(self.username)
-        owes = "owes"
-        for from_user, to_user, amount in loans:
-            if to_user == self.username:
-                to_user = "YOU"
-                owes = "owe"
-            if from_user == self.username:
-                from_user = "YOU"
-            CTkLabel(loan_frame, text=f"{to_user.upper()} {owes} {from_user.upper()} {amount:.2f} EGP", text_color="#BBBBBB").pack(pady=3)
-        
+               
         # Back Button with a sleek look
         self.back_button = CTkButton(container, text="Back", fg_color="#00FFC6", text_color="#111", 
                                     font=("Helvetica", 14, "bold"), corner_radius=12, command=lambda: self.user_menu())
