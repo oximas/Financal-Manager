@@ -236,7 +236,16 @@ class GUI:
         vault_options.grid(row=row_index, column=1, padx=10, pady=5)
         row_index += 1
 
+        date_label = CTkLabel(central_frame,text="Date:")
+        date_label.grid(row=row_index,column=0,sticky="e",padx=10,pady=5)
+        date_picker = CTkDatePicker(central_frame)
+        date_picker.set_date_format("%Y-%m-%d")
+        date_picker.grid(row = row_index,column = 1,padx=10,pady=5)
+        row_index+=1
+        
         # Submit Button (Stretched Across Screen)
+        def date_get():
+            return date_picker.get_date() + " " + datetime.now().strftime("%H:%M:%S") if date_picker.get_date() else None
         if transaction_type == "Withdraw":
             submit_button = CTkButton(
                 central_frame,
@@ -250,7 +259,8 @@ class GUI:
                     chosen_category.get(),
                     description_entry.get(),
                     quantity_entry.get(),
-                    chosen_unit.get()
+                    chosen_unit.get(),
+                    date= date_get()
                 )
             )
         elif transaction_type == "Deposit":
@@ -264,7 +274,8 @@ class GUI:
                     chosen_vault.get(),
                     amount_entry.get(),
                     chosen_category.get(),
-                    description_entry.get()
+                    description_entry.get(),
+                    date= date_get()
                 )
             )
         else:
@@ -272,7 +283,7 @@ class GUI:
         
         submit_button.grid(row=row_index, column=0, columnspan=2, sticky="ew", pady=10)
         row_index += 1
-
+        
         # Back Button (Stretched Across Screen)
         back_button = CTkButton(
             central_frame,
@@ -289,14 +300,13 @@ class GUI:
             self.zoomable_widgets[f"{widget}"] = widget
 
 
-    def process_transaction(self, transaction_type,vault,money_amount,category_name,description,quantity=None,unit=None):
-       
+    def process_transaction(self, transaction_type,vault,money_amount,category_name,description,quantity=None,unit=None,date=None):
         try:
             if(transaction_type=="Withdraw"):
-                self.db.withdraw(self.username,vault,money_amount,category_name,description,quantity,unit)
+                self.db.withdraw(self.username,vault,money_amount,category_name,description,quantity,unit,date)
                 print("Withdrew")
             elif(transaction_type=="Deposit"):
-                self.db.deposit(self.username,vault,money_amount,category_name,description,quantity,unit)
+                self.db.deposit(self.username,vault,money_amount,category_name,description,quantity,unit,date)
                 print("Depsited")
             else:
                 raise ValueError("transaction type must be 'Withdraw' or 'Deposit' ")
