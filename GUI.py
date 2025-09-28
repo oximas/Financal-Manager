@@ -203,21 +203,23 @@ class GUI:
         row_index += 1
 
         # Withdraw-specific fields
+        quantity_label = CTkLabel(central_frame, text="Quantity:")
+        quantity_entry = CTkEntry(central_frame)
+        unit_label = CTkLabel(central_frame, text="Unit:")
+        chosen_unit = StringVar(central_frame)
+        unit_names = self.db.get_unit_names()
+        unit_options = CTkComboBox(central_frame, variable=chosen_unit, values=unit_names)
+
         if transaction_type == "Withdraw":
             # Quantity
-            quantity_label = CTkLabel(central_frame, text="Quantity:")
             quantity_label.grid(row=row_index, column=0, sticky="e", padx=10, pady=5)
-            quantity_entry = CTkEntry(central_frame)
             quantity_entry.grid(row=row_index, column=1, padx=10, pady=5)
             row_index += 1
 
             # Unit
-            unit_label = CTkLabel(central_frame, text="Unit:")
             unit_label.grid(row=row_index, column=0, sticky="e", padx=10, pady=5)
             unit_names = self.db.get_unit_names()
-            chosen_unit = StringVar(central_frame)
             chosen_unit.set(unit_names[0] if len(unit_names) else "Please add more units")
-            unit_options = CTkComboBox(central_frame, variable=chosen_unit, values=unit_names)
             unit_options.grid(row=row_index, column=1, padx=10, pady=5)
             row_index += 1
 
@@ -240,8 +242,7 @@ class GUI:
         # Submit Button (Stretched Across Screen)
         def date_get():
             return date_picker.get_date() + " " + datetime.now().strftime("%H:%M:%S") if date_picker.get_date() else None
-        if transaction_type == "Withdraw":
-            submit_button = CTkButton(
+        submit_button = CTkButton(
                 central_frame,
                 text=transaction_type,
                 fg_color="#98FB98",
@@ -257,23 +258,6 @@ class GUI:
                     date= date_get()
                 )
             )
-        elif transaction_type == "Deposit":
-            submit_button = CTkButton(
-                central_frame,
-                text=transaction_type,
-                fg_color="#98FB98",
-                text_color="black",
-                command=lambda: self.process_transaction(
-                    transaction_type,
-                    chosen_vault.get(),
-                    amount_entry.get(),
-                    chosen_category.get(),
-                    description_entry.get(),
-                    date= date_get()
-                )
-            )
-        else:
-            raise ValueError("Transaction type must be 'Withdraw' or 'Deposit'")
         
         submit_button.grid(row=row_index, column=0, columnspan=2, sticky="ew", pady=10)
         row_index += 1
@@ -461,34 +445,6 @@ class GUI:
             messagebox.showinfo("Successful Transaction","Transfer interaction was successful")
 
 
-
-    
-
-    def refresh_to_user_vault_names(self, username):
-        """ Refresh the vault options for the selected recipient user. """
-        to_vault_names = self.db.get_user_vault_names(username)
-        if to_vault_names:
-            self.to_vault.set(to_vault_names[0])  # Set first vault as default
-            self.to_vault_options.configure(values=to_vault_names)  # Update dropdown
-        else:
-            self.to_vault.set("No Vaults")  # Set fallback value
-            self.to_vault_options.configure(values=["No Vaults"])
-
-    def refresh_from_user_vault_names(self, username):
-        """ Refresh the vault options for the selected sender user. """
-        from_vault_names = self.db.get_user_vault_names(username)
-        if from_vault_names:
-            self.from_vault.set(from_vault_names[0])  # Set first vault as default
-            self.from_vault_options.configure(values=from_vault_names)  # Update dropdown
-        else:
-            self.from_vault.set("No Vaults")  # Set fallback value
-            self.from_vault_options.configure(values=["No Vaults"])
-
-
-    
-        
-
-    
     def summary_menu(self):
         self.destroy_all_widgets()
 
