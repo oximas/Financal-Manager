@@ -1,5 +1,5 @@
 import tkinter as tk
-import customtkinter as ctk 
+import customtkinter as ctk
 from customtkinter import * # type: ignore
 from CTkDatePicker import CTkDatePicker
 from datetime import datetime
@@ -28,6 +28,7 @@ class GUI:
         #self.username="Home"
         #self.transaction_menu("Withdraw")
 
+        self.master.mainloop()
     def main_menu(self):
         self.destroy_all_widgets()
         self.master.title("Finance Manager - Welcome")
