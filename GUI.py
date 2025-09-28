@@ -281,10 +281,10 @@ class GUI:
         try:
             if(transaction_type=="Withdraw"):
                 self.db.withdraw(self.username,vault,money_amount,category_name,description,quantity,unit,date)
-                print("Withdrew")
+                print(f"Withdrew {money_amount} from vault({vault}) for user({self.username}), category({category_name}), description:{description},quantity: {quantity}, unit:{unit}, date:{date}")
             elif(transaction_type=="Deposit"):
-                self.db.deposit(self.username,vault,money_amount,category_name,description,quantity,unit,date)
-                print("Depsited")
+                self.db.deposit(self.username,vault,money_amount,category_name,description,date)
+                print(f"Deposited {money_amount} into vault({vault}) for user({self.username}), category({category_name}), description:{description}, date:{date}")
             else:
                 raise ValueError("transaction type must be 'Withdraw' or 'Deposit' ")
         except:
