@@ -21,15 +21,6 @@ class GUI:
         self.master.geometry(f"{self.default_width}x{self.default_height}")
         self.master.configure(fg_color="#000000")
 
-        #zoom variables 
-        self.zoom_level = 1.0  # Default zoom (100%)
-        self.min_zoom = 0.8    # 80% minimum zoom
-        self.max_zoom = 2.0    # 200% maximum zoom
-        self.master.bind("<Control-MouseWheel>", self.zoom_handler)  # Windows/Linux
-        self.master.bind("<Control-Button-4>", self.zoom_handler)    # Mac (up)
-        self.master.bind("<Control-Button-5>", self.zoom_handler)    # Mac (down)
-        # Store widgets that need zooming
-        self.zoomable_widgets = {}
         self.main_menu()  # Calls the menu with login/signup options
 
         ## For debuging certain menus uncoment the code below
@@ -298,8 +289,7 @@ class GUI:
 
         # Resize window
         self.window_resize()
-        for widget in self.master.winfo_children():
-            self.zoomable_widgets[f"{widget}"] = widget
+
 
 
     def process_transaction(self, transaction_type,vault,money_amount,category_name,description,quantity=None,unit=None,date=None):
@@ -586,61 +576,7 @@ class GUI:
         margin = 20
         self.master.geometry(f"{max(width+margin,self.default_width)}x{max(height+margin,self.default_height)}")
 
-    def zoom_handler(self, event):
-        # Determine zoom direction (1 for up, -1 for down)
-        delta = 1 if (event.delta > 0 or event.num == 4) else -1
-        
-        # Calculate new zoom level (with constraints)
-        new_zoom = self.zoom_level + (delta * 0.1)  # 10% per step
-        new_zoom = max(self.min_zoom, min(self.max_zoom, new_zoom))
-        
-        if new_zoom != self.zoom_level:
-            self.zoom_level = new_zoom
-            self.apply_zoom()
 
-    def apply_zoom(self):
-        """Applies zoom level to all tracked widgets"""
-        try:
-            for widget_name, widget in self.zoomable_widgets.items():
-                # Skip if widget is destroyed or not available
-                if not widget.winfo_exists():
-                    continue
-
-                # 1. FONT SCALING
-                if hasattr(widget, 'configure') and 'font' in widget.configure():
-                    current_font = widget.cget('font')
-                    
-                    # Handle different font formats
-                    if isinstance(current_font, (tuple, list)):
-                        # Case 1: ('Arial', 12) or ('Arial', 12, 'bold')
-                        font_parts = list(current_font)
-                        if len(font_parts) >= 2 and isinstance(font_parts[1], (int, float)):
-                            font_parts[1] = int(font_parts[1] * self.zoom_level)
-                            widget.configure(font=tuple(font_parts))
-                    elif isinstance(current_font, str):
-                        # Case 2: "Arial 12 bold" (less common in CTkinter)
-                        pass  # Add string parsing if needed
-
-                # 2. WIDGET DIMENSIONS
-                for dimension in ['height', 'width']:
-                    if hasattr(widget, 'configure') and dimension in widget.configure():
-                        current_val = widget.cget(dimension)
-                        if isinstance(current_val, (int, float)):
-                            widget.configure(**{dimension: int(current_val * self.zoom_level)})
-
-                # 3. SPECIAL CASES
-                if isinstance(widget, ctk.CTkFrame):
-                    # Scale internal padding for frames
-                    for child in widget.winfo_children():
-                        child.grid_configure(
-                            padx=int(10 * self.zoom_level),
-                            pady=int(5 * self.zoom_level)
-                        )
-                
-                
-
-        except Exception as e:
-            print(f"Zoom error on {widget_name}: {str(e)}")
                     
 # Main Application
 root = CTk()
