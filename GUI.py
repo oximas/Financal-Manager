@@ -498,11 +498,11 @@ class GUI:
         self.back_button.pack(pady=2)
 
         self.window_resize()
+
     def add_vault(self):
-        pass
         ask_new_name = CTkInputDialog(text="New vault name is:", title="Add new vault")
         new_vault_name = ask_new_name.get_input()
-        new_vault_name=new_vault_name.capitalize()
+
         if new_vault_name:
             try:
                 self.db.add_vault(self.username,new_vault_name)
@@ -522,9 +522,9 @@ class GUI:
         except PermissionError:
             messagebox.showerror("couldn't export into excel",'''close any instancesof the file, 
                                                                 and make sure you have write permissions''')
-         
+        
     def destroy_all_widgets(self):
-         for widget in self.master.winfo_children():
+        for widget in self.master.winfo_children():
             widget.destroy()
     def window_resize(self):
         self.master.update_idletasks()
