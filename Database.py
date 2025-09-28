@@ -211,15 +211,19 @@ class Database:
             total_balance+=balance[0]
         return total_balance
     #transactions
-    def add_transaction(self,username,vault_name,transaction_type,money_amount,category,description,quantity=None,unit=None):
+    def add_transaction(self,username,vault_name,transaction_type,money_amount,category,description,quantity=None,unit=None,date=None):
+        #add date property here
+        if not date:
+            date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         vault_id = self.get_vault_id(username,vault_name)
         category_id = self.get_category_id(category)
         unit_id = self.get_unit_id(unit)
+        
         self.c.execute('''INSERT INTO transactions 
                        (vault_id, transaction_type,amount,category_id, description, quantity,unit_id,date)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now','localtime'))
+                        VALUES (?, ?, ?, ?, ?, ?, ?,?)
                   ''', 
-                (vault_id,transaction_type,money_amount,category_id,description.lower(),quantity,unit_id))
+                (vault_id,transaction_type,money_amount,category_id,description.lower(),quantity,unit_id,date))
         self.conn.commit()
         return True
     #loans
