@@ -536,7 +536,7 @@ class GUI:
 
                     
 # Main Application
-root = CTk()
-app = GUI(root)
-root.mainloop()
+#root = CTk()
+#app = GUI(root)
+#root.mainloop()
 
