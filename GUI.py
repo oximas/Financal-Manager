@@ -11,16 +11,15 @@ set_default_color_theme('blue')
 
 # GUI Interface
 class GUI:
-    def __init__(self, master):
-
+    def run(self):
         self.db = DB("personal_financial_manager.db")
 
-        self.master = master
+        self.master = CTk()
         self.master.title("Finance Manager")
         self.default_width = 400
         self.default_height = 300
         self.master.geometry(f"{self.default_width}x{self.default_height}")
-        self.master.configure(fg_color="#000000") 
+        self.master.configure(fg_color="#000000")
 
         #zoom variables 
         self.zoom_level = 1.0  # Default zoom (100%)
@@ -32,6 +31,9 @@ class GUI:
         # Store widgets that need zooming
         self.zoomable_widgets = {}
         self.main_menu()  # Calls the menu with login/signup options
+
+        ## For debuging certain menus uncoment the code below
+        ## and call self."name of menu"
         #self.username="Home"
         #self.transaction_menu("Withdraw")
 
