@@ -2,6 +2,7 @@
 import sqlite3
 from tkinter import messagebox
 from tkinter import filedialog
+from datetime import datetime
 import pandas as pd
 class Database:
     def __init__(self, db_name='financial_manager2.db'):
@@ -288,14 +289,14 @@ class Database:
         unit_names = [unit[0] for unit in  units]
         return unit_names
     #services
-    def deposit(self,username,vault_name,amount,category_name,description,quantity=None,unit=None):
+    def deposit(self,username,vault_name,amount,category_name,description,date=None):
         self.add_to_vault(username,vault_name,amount)
-        self.add_transaction(username,vault_name,"Deposit",float(amount),category_name,description,quantity,unit)
+        self.add_transaction(username,vault_name,"Deposit",float(amount),category_name,description,date=date)
         return True
     
-    def withdraw(self,username,vault_name,amount,category_name,description,quantity=None,unit=None):
+    def withdraw(self,username,vault_name,amount,category_name,description,quantity=None,unit=None,date=None):
         self.remove_from_vault(username,vault_name,amount)
-        self.add_transaction(username,vault_name,"Withdraw",-float(amount),category_name,description,quantity,unit)
+        self.add_transaction(username,vault_name,"Withdraw",-float(amount),category_name,description,quantity,unit,date)
         return True
     def transfer(self,from_user,from_vault,to_user,to_vault,amount,description=None,is_loan_=False):
         transaction_type= "Loan" if is_loan_ else "Transfer"
