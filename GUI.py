@@ -29,8 +29,17 @@ class GUI:
         #self.transaction_menu("Withdraw")
 
         self.master.mainloop()
+    #Helper functions
+    @staticmethod
+    def menu_wrapper(fn):
+        def wrapper(self, *args, **kwargs):
+            self.destroy_all_widgets()
+            fn(self, *args, **kwargs)
+            self.window_resize()
+        return wrapper
+
+    @menu_wrapper
     def main_menu(self):
-        self.destroy_all_widgets()
         self.master.title("Finance Manager - Welcome")
 
         self.login_button = CTkButton(self.master, text="Login", command=self.login_menu, width=200)
@@ -39,9 +48,9 @@ class GUI:
         self.signup_button = CTkButton(self.master, text="Sign Up", command=self.signup_menu, width=200)
         self.signup_button.pack(pady=10)
 
-        self.window_resize()
+    @menu_wrapper
     def login_menu(self):
-        self.destroy_all_widgets()
+        
         self.master.title("Login")
 
         # Username
@@ -66,10 +75,9 @@ class GUI:
         self.back_button = CTkButton(self.master, text="Back", command=self.main_menu, fg_color="#444", width=200)
         self.back_button.pack(pady=5)
 
-        self.window_resize()
-
+    @menu_wrapper
     def signup_menu(self):
-        self.destroy_all_widgets()
+
         self.master.title("Sign Up")
 
         # Username
@@ -103,7 +111,6 @@ class GUI:
         self.back_button = CTkButton(self.master, text="Back", command=self.main_menu, fg_color="#444", width=200)
         self.back_button.pack(pady=5)
 
-        self.window_resize()
     def login(self,username,password):
         correct_password = self.db.check_user_password(username,password)
         if correct_password:
@@ -123,9 +130,8 @@ class GUI:
         self.username=username.capitalize()
         self.user_menu()
 
+    @menu_wrapper
     def user_menu(self):
-        self.destroy_all_widgets()
-
         self.master.title(f"Finance Manager - {self.username.capitalize()}")  # Show the username in the title
 
         self.deposit_button = CTkButton(self.master, text="Deposit", command=self.deposit_menu)
@@ -143,8 +149,6 @@ class GUI:
 
         self.account_button = CTkButton(self.master, text="Account", command=self.account_menu)
         self.account_button.pack(pady=2)
-        
-        self.window_resize()
 
     def deposit_menu(self):
         self.transaction_menu("Deposit")
@@ -152,9 +156,8 @@ class GUI:
     def withdraw_menu(self):
         self.transaction_menu("Withdraw")
 
+    @menu_wrapper
     def transaction_menu(self, transaction_type):
-        self.destroy_all_widgets()
-
         # Configure rows and columns to expand
         self.master.grid_rowconfigure(0, weight=1)  # Add weight to the top row
         self.master.grid_rowconfigure(100, weight=1)  # Add weight to the bottom row
@@ -272,9 +275,6 @@ class GUI:
         )
         back_button.grid(row=row_index, column=0, columnspan=2, sticky="ew", pady=5)
 
-        # Resize window
-        self.window_resize()
-
 
 
     def process_transaction(self, transaction_type,vault,money_amount,category_name,description,quantity=None,unit=None,date=None):
@@ -292,9 +292,8 @@ class GUI:
         else:
             messagebox.showinfo("Successful Transaction",f"{transaction_type} trans was successful")
         
-
+    @menu_wrapper
     def transfer_menu(self):
-        self.destroy_all_widgets()
         self.master.title("Transfer Menu")
 
         # Configure rows and columns to expand
@@ -401,9 +400,6 @@ class GUI:
         )
         back_button.grid(row=row_index, column=0, columnspan=2, pady=5, sticky="ew")
 
-        # Resize window
-        self.window_resize()
-
         def refresh_to_user_vault_names(username):
             """ Refresh the vault options for the selected recipient user. """
             to_vault_names = self.db.get_user_vault_names(username)
@@ -444,10 +440,8 @@ class GUI:
         else:
             messagebox.showinfo("Successful Transaction","Transfer interaction was successful")
 
-
+    @menu_wrapper
     def summary_menu(self):
-        self.destroy_all_widgets()
-
         self.master.title("Summary Menu")
         
         # Main container frame with sleek design
@@ -472,13 +466,9 @@ class GUI:
         self.back_button = CTkButton(container, text="Back", fg_color="#00FFC6", text_color="#111", 
                                     font=("Helvetica", 14, "bold"), corner_radius=12, command=lambda: self.user_menu())
         self.back_button.pack(pady=20)
-        
-        self.window_resize()
 
-
+    @menu_wrapper
     def account_menu(self):
-        self.destroy_all_widgets()
-
         self.username_label = CTkLabel(self.master,text=f"Username: {self.username}")
         self.username_label.pack(pady=2)
 
@@ -496,8 +486,6 @@ class GUI:
 
         self.back_button = CTkButton(self.master, text="Back" ,fg_color="#444", text_color="white", command=self.user_menu)
         self.back_button.pack(pady=2)
-
-        self.window_resize()
 
     def add_vault(self):
         ask_new_name = CTkInputDialog(text="New vault name is:", title="Add new vault")
