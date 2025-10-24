@@ -99,15 +99,15 @@ class Database:
         #check if user exists
         username = str(username)
         username = username.capitalize()
-        self.c.execute("SELECT * FROM users WHERE username = ? ", 
-                       (username,))
+        self.c.execute("SELECT * FROM users WHERE username = ? ",
+                    (username,))
         user = self.c.fetchone()
-        return user
+        return bool(user)
     def check_user_password(self,username,password):
         username = str(username)
         username = username.capitalize()
-        self.c.execute("SELECT * FROM users WHERE username = ? AND password = ?", 
-                       (username,password))
+        self.c.execute("SELECT * FROM users WHERE username = ? AND password = ?",
+                    (username,password))
         hasPassword = self.c.fetchone()
         return bool(hasPassword)
     def add_user(self,username,password=None):
@@ -115,7 +115,7 @@ class Database:
         username = str(username)
         username = username.capitalize()
         if self.user_exists(username):
-            raise Exception("Can't add auser that exists")
+            raise Exception("Can't add a user that exists")
         self.c.execute("INSERT INTO users (username, password) VALUES (?, ?)", 
                        (username, password))
         user_id = self.get_user_id(username)
@@ -148,7 +148,7 @@ class Database:
         if self.vault_exists(username,vault_name):
             raise ValueError("can't have dublicate vaults")
         self.c.execute("INSERT INTO vaults (user_id,vault_name,balance) VALUES (?,?,0)",
-                       (user_id,vault_name))
+                    (user_id,vault_name))
         self.conn.commit()
         return True
     def remove_vault(self,username,vault_name):
@@ -175,11 +175,12 @@ class Database:
         self.c.execute("UPDATE vaults SET balance = balance + ? WHERE user_id = ? AND vault_name = ?",
                     (amount, user_id,vault_name)) 
         return True
-    def remove_from_vault(self,username,vault_name,amount):
+    def remove_from_vault(self,username,vault_name,amount,on_inssufficent_funds):
         username = str(username)
         username = username.capitalize()
         if not self.vault_has_balance(username,vault_name,amount):
-            raise ValueError("insufficent funds")
+            on_inssufficent_funds()
+            return
         user_id = self.get_user_id(username)
         self.c.execute("UPDATE vaults SET balance = balance - ? WHERE user_id = ? AND vault_name = ?",
                     (amount, user_id,vault_name)) 
@@ -294,14 +295,15 @@ class Database:
         self.add_transaction(username,vault_name,"Deposit",float(amount),category_name,description,date=date)
         return True
     
-    def withdraw(self,username,vault_name,amount,category_name,description,quantity=None,unit=None,date=None):
-        self.remove_from_vault(username,vault_name,amount)
+    def withdraw(self,username,vault_name,amount,category_name,description,on_insufficent_funds,quantity=None,unit=None,date=None):
+        self.remove_from_vault(username,vault_name,amount,on_insufficent_funds)
         self.add_transaction(username,vault_name,"Withdraw",-float(amount),category_name,description,quantity,unit,date)
         return True
-    def transfer(self,from_user,from_vault,to_user,to_vault,amount,description=None,is_loan_=False):
+    
+    def transfer(self,from_user,from_vault,to_user,to_vault,amount,on_insufficent_funds,description=None,is_loan_=False):
         transaction_type= "Loan" if is_loan_ else "Transfer"
         description = description if description else f"{transaction_type}ing money" 
-        self.remove_from_vault(from_user,from_vault,amount)
+        self.remove_from_vault(from_user,from_vault,amount,on_insufficent_funds)
         self.add_to_vault(to_user,to_vault,amount)
         self.add_transaction(from_user,from_vault,transaction_type,-float(amount),"Others",description)
         self.add_transaction(to_user,to_vault,transaction_type,amount,"Others",description)

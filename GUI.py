@@ -6,13 +6,19 @@ from datetime import datetime
 from tkinter import * # type: ignore
 from tkinter import messagebox
 from Database import Database as DB
+from Manager import *
 set_appearance_mode("System")
 set_default_color_theme('blue')
 
 # GUI Interface
 class GUI:
+    '''
+    Manages the menus, and everything GUI related , resizing windows, clicking buttons, etc...
+    to use call GUI.run()
+    '''
     def run(self):
         self.db = DB("personal_financial_manager.db")
+        self.mng = Manager("personal_financial_manager.db")
 
         self.master = CTk()
         self.master.title("Finance Manager")
@@ -25,7 +31,7 @@ class GUI:
 
         ## For debuging certain menus uncoment the code below
         ## and call self."name of menu"
-        #self.username="Home"
+        #self.mng.username="Home"
         #self.transaction_menu("Withdraw")
 
         self.master.mainloop()
@@ -37,7 +43,89 @@ class GUI:
             fn(self, *args, **kwargs)
             self.window_resize()
         return wrapper
+    
 
+    def login(self,username,password):
+        def on_wrong_password():
+            messagebox.showerror("Incorect Password",f"Password '{password}' isn't correct")
+        def on_wrong_username():
+            messagebox.showerror("Incorect Username",f"Username '{username}' doesn't exist")
+        self.mng.login(username,password,
+                        self.user_menu,
+                        on_wrong_password,
+                        on_wrong_username)
+    
+    def signup(self,username,password,check_password):
+        def on_wrong_password():
+            messagebox.showerror("Incorect Password",f"Passwords must match")
+        def on_wrong_username():
+            messagebox.showerror("Incorect Username",f"Username '{username}' already exists")
+        self.mng.signup(username,password,check_password,
+                        self.signup_menu,
+                        on_wrong_password,
+                        on_wrong_username)
+
+    def process_transaction(self, transaction_type,vault,money_amount,category_name,description,quantity=None,unit=None,date=None):
+        def on_insufficent_funds():
+            current_balance = self.mng.get_current_user_balance()
+            messagebox.showerror(f"Trying to withdraw {money_amount} ,but only has {current_balance}")
+        
+        if self.mng.process_transaction(transaction_type,vault,money_amount,category_name,description,on_insufficent_funds,quantity,unit,date):
+            messagebox.showinfo("Successful Transaction",f"{transaction_type} transaction was successful")
+        else:
+            messagebox.showerror("Unsuccessful Transaction",f"{transaction_type} transaction was unsuccessful")
+
+    def process_transfer(self,from_vault,to_user,to_vault,money_amount,reason):
+        def on_insufficent_funds():
+            current_balance = self.mng.get_current_user_balance()
+            messagebox.showerror(f"Trying to withdraw {money_amount} ,but only has {current_balance}")
+        
+        try:
+            self.mng.process_transfer(from_vault,to_user,to_vault,money_amount,on_insufficent_funds,reason)
+        except IncorrectMoneyAmmount:
+            messagebox.showwarning("incorrect money amount","amount must be a non negative number")
+        except IncorrectVaultTransfer:
+            messagebox.showwarning("incorrect transaction","cannot transfer to the same vault that you are taking money out of")
+        except InsufficentFunds:
+            messagebox.showerror("Unsuccessful Transaction","Transfer interaction was unsuccessful")
+        else:
+            messagebox.showinfo("Successful Transaction","Transfer interaction was successful")
+        
+    def add_vault(self):
+        ask_new_name = CTkInputDialog(text="New vault name is:", title="Add new vault")
+        new_vault_name = ask_new_name.get_input()
+
+        if new_vault_name:
+            try:
+                self.db.add_vault(self.mng.get_current_username(),new_vault_name)
+            except:
+                messagebox.showerror("Failed to add new vault", f"Vault '{new_vault_name}' already exists in your vaults!")
+            else:
+                messagebox.showinfo("Success", f"Vault '{new_vault_name}' added successfully!")
+
+        elif new_vault_name=="":
+            messagebox.showerror("Error", "Vault name can't be empty")
+            
+    def export_to_excel(self):
+        # Replace with actual functionality
+        print("Export to Excel called")
+        try:
+            self.db.export_to_excel(self.mng.get_current_username())
+        except PermissionError:
+            messagebox.showerror("couldn't export into excel",'''close any instancesof the file,
+                                                                and make sure you have write permissions''')
+        
+    def destroy_all_widgets(self):
+        for widget in self.master.winfo_children():
+            widget.destroy()
+    def window_resize(self):
+        self.master.update_idletasks()
+        width = self.master.winfo_reqwidth()
+        height = self.master.winfo_reqheight()
+        margin = 20
+        self.master.geometry(f"{max(width+margin,self.default_width)}x{max(height+margin,self.default_height)}")
+
+    #Menus
     @menu_wrapper
     def main_menu(self):
         self.master.title("Finance Manager - Welcome")
@@ -111,28 +199,9 @@ class GUI:
         self.back_button = CTkButton(self.master, text="Back", command=self.main_menu, fg_color="#444", width=200)
         self.back_button.pack(pady=5)
 
-    def login(self,username,password):
-        correct_password = self.db.check_user_password(username,password)
-        if correct_password:
-            self.username=username.capitalize()
-            self.user_menu()
-        else:
-            messagebox.showerror("Incorect login info","your username and password don't match")
-
-    def signup(self,username,password,check_password):
-        if(password!=check_password):
-            messagebox.showerror("password error","both passwords must match")
-            return
-        if(self.db.user_exists(username)):
-             messagebox.showerror("dublicate username","username already exists")
-             return
-        self.db.add_user(username,password)
-        self.username=username.capitalize()
-        self.user_menu()
-
     @menu_wrapper
     def user_menu(self):
-        self.master.title(f"Finance Manager - {self.username.capitalize()}")  # Show the username in the title
+        self.master.title(f"Finance Manager - {self.mng.get_current_username()}")  # Show the username in the title
 
         self.deposit_button = CTkButton(self.master, text="Deposit", command=self.deposit_menu)
         self.deposit_button.pack(pady=2)
@@ -221,7 +290,6 @@ class GUI:
 
             # Unit
             unit_label.grid(row=row_index, column=0, sticky="e", padx=10, pady=5)
-            unit_names = self.db.get_unit_names()
             chosen_unit.set(unit_names[0] if len(unit_names) else "Please add more units")
             unit_options.grid(row=row_index, column=1, padx=10, pady=5)
             row_index += 1
@@ -231,7 +299,7 @@ class GUI:
         vault_label.grid(row=row_index, column=0, sticky="e", padx=10, pady=5)
         chosen_vault = StringVar(central_frame)
         chosen_vault.set("Main")
-        vault_options = CTkComboBox(central_frame, variable=chosen_vault, values=self.db.get_user_vault_names(self.username))
+        vault_options = CTkComboBox(central_frame, variable=chosen_vault, values=self.mng.get_current_user_vault_names())
         vault_options.grid(row=row_index, column=1, padx=10, pady=5)
         row_index += 1
 
@@ -277,20 +345,7 @@ class GUI:
 
 
 
-    def process_transaction(self, transaction_type,vault,money_amount,category_name,description,quantity=None,unit=None,date=None):
-        try:
-            if(transaction_type=="Withdraw"):
-                self.db.withdraw(self.username,vault,money_amount,category_name,description,quantity,unit,date)
-                print(f"Withdrew {money_amount} from vault({vault}) for user({self.username}), category({category_name}), description:{description},quantity: {quantity}, unit:{unit}, date:{date}")
-            elif(transaction_type=="Deposit"):
-                self.db.deposit(self.username,vault,money_amount,category_name,description,date)
-                print(f"Deposited {money_amount} into vault({vault}) for user({self.username}), category({category_name}), description:{description}, date:{date}")
-            else:
-                raise ValueError("transaction type must be 'Withdraw' or 'Deposit' ")
-        except:
-            messagebox.showerror("Unsuccessful Transaction",f"{transaction_type} transaction was unsuccessful")
-        else:
-            messagebox.showinfo("Successful Transaction",f"{transaction_type} trans was successful")
+    
         
     @menu_wrapper
     def transfer_menu(self):
@@ -320,7 +375,7 @@ class GUI:
         row_index = 1  # Start below the title
 
         # Fetch vaults for current user
-        from_vault_names = self.db.get_user_vault_names(self.username)
+        from_vault_names = self.mng.get_current_user_vault_names()
 
         # "From" Vault Selection
         from_vault_label = ctk.CTkLabel(central_frame, text="From:", text_color="white")
@@ -337,7 +392,7 @@ class GUI:
         to_user_label.grid(row=row_index, column=0, padx=5, pady=5, sticky="e")
 
         to_user = StringVar(central_frame)
-        to_user.set(self.username)
+        to_user.set(self.mng.get_current_username())
         to_user_options = ctk.CTkComboBox(
             central_frame,
             variable=to_user,
@@ -424,22 +479,6 @@ class GUI:
                 from_vault.set("No Vaults Available")  # Set default value if empty
                 from_vault_options.configure(values=["No Vaults Available"])
 
-
-
-
-    def process_transfer(self,from_vault,to_user,to_vault,amount,reason):
-        try:
-            if(float(amount)<=0):
-                messagebox.showwarning("incorrect money amount","amount must be a postive number")
-                return
-            if(self.username==to_user and from_vault==to_vault):
-                messagebox.showwarning("incorrect transaction","cannot transfer to the same vault that you are taking money out of")
-            self.db.transfer(self.username,from_vault,to_user,to_vault,amount,reason)
-        except:
-            messagebox.showerror("Unsuccessful Transaction","Transfer interaction was unsuccessful")
-        else:
-            messagebox.showinfo("Successful Transaction","Transfer interaction was successful")
-
     @menu_wrapper
     def summary_menu(self):
         self.master.title("Summary Menu")
@@ -449,7 +488,7 @@ class GUI:
         container.pack(pady=20, padx=30, fill='both', expand=True)
         
         # Total Balance Label with a modern font
-        self.total_label = CTkLabel(container, text=f"Total Amount: {self.db.get_user_balance(self.username):.2f} EGP", 
+        self.total_label = CTkLabel(container, text=f"Total Amount: {self.mng.get_current_user_balance():.2f} EGP", 
                                     font=("Helvetica", 18, "bold"), text_color="#00FFC6")
         self.total_label.pack(pady=15)
         
@@ -457,11 +496,10 @@ class GUI:
         vault_frame = CTkFrame(container, corner_radius=10, fg_color="#333")
         vault_frame.pack(pady=10, padx=10, fill='x')
         CTkLabel(vault_frame, text="Vault Details:", font=("Helvetica", 16, "bold"), text_color="#FFFFFF").pack(pady=5)
-        vaults = self.db.get_user_vaults(self.username)
+        vaults = self.mng.get_current_user_vaults_as_dict()
         for vault_name, balance in vaults.items():
             CTkLabel(vault_frame, text=f"{vault_name}: {balance:.2f} EGP", text_color="#BBBBBB").pack(pady=3)
         
-               
         # Back Button with a sleek look
         self.back_button = CTkButton(container, text="Back", fg_color="#00FFC6", text_color="#111", 
                                     font=("Helvetica", 14, "bold"), corner_radius=12, command=lambda: self.user_menu())
@@ -469,7 +507,7 @@ class GUI:
 
     @menu_wrapper
     def account_menu(self):
-        self.username_label = CTkLabel(self.master,text=f"Username: {self.username}")
+        self.username_label = CTkLabel(self.master,text=f"Username: {self.mng.get_current_username()}")
         self.username_label.pack(pady=2)
 
         self.add_vault_button = CTkButton(self.master,text="Add vault",fg_color="#444", text_color="white", command = self.add_vault)
@@ -487,39 +525,6 @@ class GUI:
         self.back_button = CTkButton(self.master, text="Back" ,fg_color="#444", text_color="white", command=self.user_menu)
         self.back_button.pack(pady=2)
 
-    def add_vault(self):
-        ask_new_name = CTkInputDialog(text="New vault name is:", title="Add new vault")
-        new_vault_name = ask_new_name.get_input()
-
-        if new_vault_name:
-            try:
-                self.db.add_vault(self.username,new_vault_name)
-            except:
-                messagebox.showerror("Failed to add new vault", f"Vault '{new_vault_name}' already exists in your vaults!")
-            else:
-                messagebox.showinfo("Success", f"Vault '{new_vault_name}' added successfully!")
-
-        elif new_vault_name=="":
-            messagebox.showerror("Error", "Vault name can't be empty")
-            
-    def export_to_excel(self):
-        # Replace with actual functionality
-        print("Export to Excel called")
-        try:
-            self.db.export_to_excel(self.username)
-        except PermissionError:
-            messagebox.showerror("couldn't export into excel",'''close any instancesof the file, 
-                                                                and make sure you have write permissions''')
-        
-    def destroy_all_widgets(self):
-        for widget in self.master.winfo_children():
-            widget.destroy()
-    def window_resize(self):
-        self.master.update_idletasks()
-        width = self.master.winfo_reqwidth()
-        height = self.master.winfo_reqheight()
-        margin = 20
-        self.master.geometry(f"{max(width+margin,self.default_width)}x{max(height+margin,self.default_height)}")
 
 
                     
