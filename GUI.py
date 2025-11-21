@@ -67,8 +67,8 @@ class GUI:
 
     def process_transaction(self, transaction_type,vault,money_amount,category_name,description,quantity=None,unit=None,date=None):
         def on_insufficent_funds():
-            current_balance = self.mng.get_current_user_balance()
-            messagebox.showerror(f"Trying to withdraw {money_amount} ,but only has {current_balance}")
+            current_balance = self.mng.get_current_user_vault_balance(vault)
+            messagebox.showerror("Unsuccessful Transaction",f"Trying to withdraw {float(money_amount)} ,but only has {current_balance}")
         
         if self.mng.process_transaction(transaction_type,vault,money_amount,category_name,description,on_insufficent_funds,quantity,unit,date):
             messagebox.showinfo("Successful Transaction",f"{transaction_type} transaction was successful")
@@ -77,8 +77,9 @@ class GUI:
 
     def process_transfer(self,from_vault,to_user,to_vault,money_amount,reason):
         def on_insufficent_funds():
-            current_balance = self.mng.get_current_user_balance()
-            messagebox.showerror(f"Trying to withdraw {money_amount} ,but only has {current_balance}")
+            current_balance = self.mng.get_current_user_vault_balance(from_vault)
+            messagebox.showerror("Unsuccessful Transaction",f"Trying to withdraw {float(money_amount)} ,but only has {current_balance}")
+
         
         try:
             self.mng.process_transfer(from_vault,to_user,to_vault,money_amount,on_insufficent_funds,reason)
@@ -118,6 +119,7 @@ class GUI:
     def destroy_all_widgets(self):
         for widget in self.master.winfo_children():
             widget.destroy()
+
     def window_resize(self):
         self.master.update_idletasks()
         width = self.master.winfo_reqwidth()
@@ -220,13 +222,13 @@ class GUI:
         self.account_button.pack(pady=2)
 
     def deposit_menu(self):
-        self.transaction_menu("Deposit")
+        self.transaction_menu(TransactionType.DEPOSIT)
 
     def withdraw_menu(self):
-        self.transaction_menu("Withdraw")
+        self.transaction_menu(TransactionType.WITHDRAW)
 
     @menu_wrapper
-    def transaction_menu(self, transaction_type):
+    def transaction_menu(self, transaction_type:TransactionType):
         # Configure rows and columns to expand
         self.master.grid_rowconfigure(0, weight=1)  # Add weight to the top row
         self.master.grid_rowconfigure(100, weight=1)  # Add weight to the bottom row
@@ -282,7 +284,7 @@ class GUI:
         unit_names = self.db.get_unit_names()
         unit_options = CTkComboBox(central_frame, variable=chosen_unit, values=unit_names)
 
-        if transaction_type == "Withdraw":
+        if transaction_type == TransactionType.WITHDRAW:
             # Quantity
             quantity_label.grid(row=row_index, column=0, sticky="e", padx=10, pady=5)
             quantity_entry.grid(row=row_index, column=1, padx=10, pady=5)
@@ -315,7 +317,7 @@ class GUI:
             return date_picker.get_date() + " " + datetime.now().strftime("%H:%M:%S") if date_picker.get_date() else None
         submit_button = CTkButton(
                 central_frame,
-                text=transaction_type,
+                text=str(transaction_type),
                 fg_color="#98FB98",
                 text_color="black",
                 command=lambda: self.process_transaction(

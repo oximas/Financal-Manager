@@ -180,7 +180,7 @@ class Database:
         username = username.capitalize()
         if not self.vault_has_balance(username,vault_name,amount):
             on_inssufficent_funds()
-            return
+            raise InsufficentFundsError()
         user_id = self.get_user_id(username)
         self.c.execute("UPDATE vaults SET balance = balance - ? WHERE user_id = ? AND vault_name = ?",
                     (amount, user_id,vault_name)) 
@@ -296,17 +296,25 @@ class Database:
         return True
     
     def withdraw(self,username,vault_name,amount,category_name,description,on_insufficent_funds,quantity=None,unit=None,date=None):
-        self.remove_from_vault(username,vault_name,amount,on_insufficent_funds)
-        self.add_transaction(username,vault_name,"Withdraw",-float(amount),category_name,description,quantity,unit,date)
+        try:
+            self.remove_from_vault(username,vault_name,amount,on_insufficent_funds)
+            self.add_transaction(username,vault_name,"Withdraw",-float(amount),category_name,description,quantity,unit,date)
+        except InsufficentFundsError:
+            print("insufficent funds")
+            return False
         return True
     
     def transfer(self,from_user,from_vault,to_user,to_vault,amount,on_insufficent_funds,description=None,is_loan_=False):
         transaction_type= "Loan" if is_loan_ else "Transfer"
         description = description if description else f"{transaction_type}ing money" 
-        self.remove_from_vault(from_user,from_vault,amount,on_insufficent_funds)
-        self.add_to_vault(to_user,to_vault,amount)
-        self.add_transaction(from_user,from_vault,transaction_type,-float(amount),"Others",description)
-        self.add_transaction(to_user,to_vault,transaction_type,amount,"Others",description)
+        try:
+            self.remove_from_vault(from_user,from_vault,amount,on_insufficent_funds)
+            self.add_to_vault(to_user,to_vault,amount)
+            self.add_transaction(from_user,from_vault,transaction_type,-float(amount),"Others",description)
+            self.add_transaction(to_user,to_vault,transaction_type,amount,"Others",description)
+        except InsufficentFundsError:
+            return False
+        return True
 
     def loan(self,from_user,from_vault,to_user,to_vault,amount,description=None):
         self.transfer(from_user,from_vault,to_user,to_vault,amount,description,is_loan_=True)
@@ -366,4 +374,6 @@ class Database:
                 loans.to_excel(writer, sheet_name='Loans', index=False)
             # Create a DataFrame and export to the selected Excel file
             print(f"Transactions and loans where exported to {file_path}")    
-        
+
+class InsufficentFundsError(Exception):
+    pass

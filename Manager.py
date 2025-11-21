@@ -30,17 +30,17 @@ class Manager:
 
     def process_transaction(self, transaction_type,vault,money_amount,category_name,description,on_insufficent_funds,quantity,unit,date):
         try:
-            if transaction_type==TransactionType.WITHDRAW or transaction_type.lower()=="withdraw":
-                self.db.withdraw(self.get_current_username(),vault,
+            if transaction_type==TransactionType.WITHDRAW:
+                print(f"Withdrew {money_amount} from vault({vault}) for user({self.get_current_username()}), category({category_name}), description:{description},quantity: {quantity}, unit:{unit}, date:{date}")   
+                return self.db.withdraw(self.get_current_username(),vault,
                                 money_amount,category_name,
                                 description,on_insufficent_funds,quantity,
                                 unit,date)
-                print(f"Withdrew {money_amount} from vault({vault}) for user({self.get_current_username()}), category({category_name}), description:{description},quantity: {quantity}, unit:{unit}, date:{date}")   
-            elif transaction_type==TransactionType.DEPOSIT or transaction_type.lower()=="deposit":
-                self.db.deposit(self.get_current_username(),vault,
+            elif transaction_type==TransactionType.DEPOSIT:
+                print(f"Deposited {money_amount} into vault({vault}) for user({self.get_current_username()}), category({category_name}), description:{description}, date:{date}")
+                return self.db.deposit(self.get_current_username(),vault,
                                 money_amount,category_name,
                                 description,date)
-                print(f"Deposited {money_amount} into vault({vault}) for user({self.get_current_username()}), category({category_name}), description:{description}, date:{date}")
         except:
             return False
         else:
@@ -66,6 +66,11 @@ class Manager:
         return self.db.get_user_vaults(self.username)
     def get_current_user_balance(self):
         return self.db.get_user_balance(self.username)
+    
+    def get_current_user_vault_balance(self,vault_name):
+        vault_dict = self.get_current_user_vaults_as_dict()
+        vault_balance = vault_dict[vault_name]
+        return vault_balance
 
 class TransactionType(Enum):
     WITHDRAW = "withdraw"
