@@ -1,90 +1,332 @@
-from Database import Database as DB
+# manager.py
+"""Business logic layer for the Finance Manager application"""
+from typing import Optional, Dict, List
 from enum import Enum
-class Manager:
-    def __init__(self,db_file):
-        self.db = DB(db_file)
-        self.username = ""
-    
-    def login(self,username,password,command_on_success,command_on_wrong_password,command_on_wrong_username):
-        username = username.capitalize()
-        if self.db.user_exists(username):
-            correct_password = self.db.check_user_password(username,password)
-            if correct_password:
-                self.username=username
-                command_on_success()
-            else:
-                command_on_wrong_password()
-        else:
-            command_on_wrong_username()
-    
-    def signup(self,username,password,check_password,command_on_success, command_on_wrong_password,command_on_wrong_username):
-        if not self.db.user_exists(username):
-            if password==check_password:
-                self.db.add_user(username,password)
-                self.username=username
-                command_on_success()
-            else:
-                command_on_wrong_password()
-        else:
-            command_on_wrong_username()
+from Database import Database as DB
+from result_types import *
 
-    def process_transaction(self, transaction_type,vault,money_amount,category_name,description,on_insufficent_funds,quantity,unit,date):
-        try:
-            if transaction_type==TransactionType.WITHDRAW:
-                print(f"Withdrew {money_amount} from vault({vault}) for user({self.get_current_username()}), category({category_name}), description:{description},quantity: {quantity}, unit:{unit}, date:{date}")   
-                return self.db.withdraw(self.get_current_username(),vault,
-                                money_amount,category_name,
-                                description,on_insufficent_funds,quantity,
-                                unit,date)
-            elif transaction_type==TransactionType.DEPOSIT:
-                print(f"Deposited {money_amount} into vault({vault}) for user({self.get_current_username()}), category({category_name}), description:{description}, date:{date}")
-                return self.db.deposit(self.get_current_username(),vault,
-                                money_amount,category_name,
-                                description,date)
-        except:
-            return False
-        else:
-            return True
-    def process_transfer(self,from_vault,to_user,to_vault,amount,on_insufficent_funds,reason):
-        try:
-            if(float(amount)<0):
-                raise IncorrectMoneyAmmount()
-            elif(self.get_current_username()==to_user and from_vault==to_vault):
-                raise IncorrectVaultTransfer()
-            self.db.transfer(self.get_current_username(),from_vault,to_user,to_vault,amount,on_insufficent_funds,reason)
-        except ValueError:
-            raise InsufficentFunds()
-    ##user access functions
-    def get_current_username(self):
-        '''returns the username of the current user in the current session'''
-        return self.username
-    def get_current_user_vault_names(self):
-        '''retruns a list of vault names that the current user owns'''
-        return self.db.get_user_vault_names(self.username)
-    def get_current_user_vaults_as_dict(self):
-        '''retruns a dictionary of vault names and the balance in each for the current user'''
-        return self.db.get_user_vaults(self.username)
-    def get_current_user_balance(self):
-        return self.db.get_user_balance(self.username)
-    
-    def get_current_user_vault_balance(self,vault_name):
-        vault_dict = self.get_current_user_vaults_as_dict()
-        vault_balance = vault_dict[vault_name]
-        return vault_balance
 
 class TransactionType(Enum):
+    """Types of transactions"""
     WITHDRAW = "withdraw"
     DEPOSIT = "deposit"
+    TRANSFER = "transfer"
+    LOAN = "loan"
 
     def __str__(self):
         return self.value
 
-class IncorrectMoneyAmmount(Exception):
-    pass
-class IncorrectVaultTransfer(Exception):
-    pass
-class InsufficentFunds(Exception):
-    pass
 
-if __name__ == "__main__":
-    pass
+class Manager:
+    """
+    Manages business logic for the finance application.
+    Handles user sessions, authentication, and transaction processing.
+    """
+    
+    def __init__(self, db_file: str):
+        self.db = DB(db_file)
+        self._current_username: Optional[str] = None
+    
+    # Authentication Methods
+    
+    def login(self, username: str, password: str) -> AuthResult:
+        """
+        Attempt to log in a user.
+        
+        Args:
+            username: The username to login with
+            password: The password to check
+            
+        Returns:
+            AuthSuccess or AuthFailure
+        """
+        username = username.capitalize()
+        
+        if not self.db.user_exists(username):
+            return AuthFailure(
+                error=AuthError.INVALID_USERNAME,
+                message=f"Username '{username}' doesn't exist"
+            )
+        
+        if not self.db.check_user_password(username, password):
+            return AuthFailure(
+                error=AuthError.INVALID_PASSWORD,
+                message="Incorrect password"
+            )
+        
+        self._current_username = username
+        return AuthSuccess(username=username)
+    
+    def signup(self, username: str, password: str, confirm_password: str) -> AuthResult:
+        """
+        Create a new user account.
+        
+        Args:
+            username: The desired username
+            password: The password
+            confirm_password: Password confirmation
+            
+        Returns:
+            AuthSuccess or AuthFailure
+        """
+        username = username.capitalize()
+        
+        if self.db.user_exists(username):
+            return AuthFailure(
+                error=AuthError.USERNAME_EXISTS,
+                message=f"Username '{username}' already exists"
+            )
+        
+        if password != confirm_password:
+            return AuthFailure(
+                error=AuthError.PASSWORD_MISMATCH,
+                message="Passwords must match"
+            )
+        
+        try:
+            self.db.add_user(username, password)
+            self._current_username = username
+            return AuthSuccess(username=username)
+        except Exception as e:
+            return AuthFailure(
+                error=AuthError.INVALID_USERNAME,
+                message=f"Failed to create account: {str(e)}"
+            )
+    
+    def logout(self):
+        """Log out the current user"""
+        self._current_username = None
+    
+    # Transaction Methods
+    
+    def process_deposit(
+        self,
+        vault: str,
+        amount: str,
+        category: str,
+        description: str,
+        date: Optional[str] = None
+    ) -> TransactionResult:
+        """
+        Process a deposit transaction.
+        
+        Args:
+            vault: The vault to deposit into
+            amount: The amount to deposit
+            category: Transaction category
+            description: Transaction description
+            date: Optional transaction date
+            
+        Returns:
+            TransactionSuccess or TransactionFailure
+        """
+        try:
+            amount_float = float(amount)
+            if amount_float < 0:
+                return TransactionFailure(
+                    error=TransactionError.INVALID_AMOUNT,
+                    message="Amount must be positive"
+                )
+            
+            self.db.deposit(
+                self._current_username,
+                vault,
+                amount_float,
+                category,
+                description,
+                date
+            )
+            
+            return TransactionSuccess(
+                amount=amount_float,
+                message="Deposit successful"
+            )
+        except ValueError:
+            return TransactionFailure(
+                error=TransactionError.INVALID_AMOUNT,
+                message="Invalid amount format"
+            )
+        except Exception as e:
+            return TransactionFailure(
+                error=TransactionError.VALIDATION_ERROR,
+                message=str(e)
+            )
+    
+    def process_withdraw(
+        self,
+        vault: str,
+        amount: str,
+        category: str,
+        description: str,
+        quantity: Optional[str] = None,
+        unit: Optional[str] = None,
+        date: Optional[str] = None
+    ) -> TransactionResult:
+        """
+        Process a withdrawal transaction.
+        
+        Args:
+            vault: The vault to withdraw from
+            amount: The amount to withdraw
+            category: Transaction category
+            description: Transaction description
+            quantity: Optional quantity
+            unit: Optional unit
+            date: Optional transaction date
+            
+        Returns:
+            TransactionSuccess or TransactionFailure
+        """
+        try:
+            amount_float = float(amount)
+            if amount_float < 0:
+                return TransactionFailure(
+                    error=TransactionError.INVALID_AMOUNT,
+                    message="Amount must be positive"
+                )
+            
+            # Check if sufficient funds
+            if not self.db.vault_has_balance(self._current_username, vault, amount_float):
+                current_balance = self.get_vault_balance(vault)
+                return TransactionFailure(
+                    error=TransactionError.INSUFFICIENT_FUNDS,
+                    message=f"Insufficient funds. Balance: {current_balance:.2f}, Required: {amount_float:.2f}"
+                )
+            
+            def on_insufficient_funds():
+                pass  # Already handled above
+            
+            self.db.withdraw(
+                self._current_username,
+                vault,
+                amount_float,
+                category,
+                description,
+                on_insufficient_funds,
+                quantity,
+                unit,
+                date
+            )
+            
+            return TransactionSuccess(
+                amount=amount_float,
+                message="Withdrawal successful"
+            )
+        except ValueError:
+            return TransactionFailure(
+                error=TransactionError.INVALID_AMOUNT,
+                message="Invalid amount format"
+            )
+        except Exception as e:
+            return TransactionFailure(
+                error=TransactionError.VALIDATION_ERROR,
+                message=str(e)
+            )
+    
+    def process_transfer(
+        self,
+        from_vault: str,
+        to_user: str,
+        to_vault: str,
+        amount: str,
+        reason: Optional[str] = None
+    ) -> TransactionResult:
+        """
+        Process a transfer transaction.
+        
+        Args:
+            from_vault: Source vault
+            to_user: Destination user
+            to_vault: Destination vault
+            amount: Amount to transfer
+            reason: Optional reason for transfer
+            
+        Returns:
+            TransactionSuccess or TransactionFailure
+        """
+        try:
+            amount_float = float(amount)
+            
+            if amount_float < 0:
+                return TransactionFailure(
+                    error=TransactionError.INVALID_AMOUNT,
+                    message="Amount must be positive"
+                )
+            
+            if self._current_username == to_user and from_vault == to_vault:
+                return TransactionFailure(
+                    error=TransactionError.SAME_VAULT_TRANSFER,
+                    message="Cannot transfer to the same vault"
+                )
+            
+            if not self.db.vault_has_balance(self._current_username, from_vault, amount_float):
+                current_balance = self.get_vault_balance(from_vault)
+                return TransactionFailure(
+                    error=TransactionError.INSUFFICIENT_FUNDS,
+                    message=f"Insufficient funds. Balance: {current_balance:.2f}, Required: {amount_float:.2f}"
+                )
+            
+            def on_insufficient_funds():
+                pass  # Already handled
+            
+            self.db.transfer(
+                self._current_username,
+                from_vault,
+                to_user,
+                to_vault,
+                amount_float,
+                on_insufficient_funds,
+                reason
+            )
+            
+            return TransactionSuccess(
+                amount=amount_float,
+                message="Transfer successful"
+            )
+        except ValueError:
+            return TransactionFailure(
+                error=TransactionError.INVALID_AMOUNT,
+                message="Invalid amount format"
+            )
+        except Exception as e:
+            return TransactionFailure(
+                error=TransactionError.VALIDATION_ERROR,
+                message=str(e)
+            )
+    
+    # User Information Methods
+    
+    @property
+    def current_username(self) -> Optional[str]:
+        """Get the current logged-in username"""
+        return self._current_username
+    
+    @property
+    def is_logged_in(self) -> bool:
+        """Check if a user is currently logged in"""
+        return self._current_username is not None
+    
+    def get_vault_names(self) -> List[str]:
+        """Get list of vault names for current user"""
+        if not self.is_logged_in:
+            return []
+        return self.db.get_user_vault_names(self._current_username)
+    
+    def get_vaults(self) -> Dict[str, float]:
+        """Get dictionary of vault names and balances for current user"""
+        if not self.is_logged_in:
+            return {}
+        return self.db.get_user_vaults(self._current_username)
+    
+    def get_total_balance(self) -> float:
+        """Get total balance across all vaults for current user"""
+        if not self.is_logged_in:
+            return 0.0
+        return self.db.get_user_balance(self._current_username)
+    
+    def get_vault_balance(self, vault_name: str) -> float:
+        """Get balance for a specific vault"""
+        if not self.is_logged_in:
+            return 0.0
+        vaults = self.get_vaults()
+        return vaults.get(vault_name, 0.0)

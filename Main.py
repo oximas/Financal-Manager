@@ -1,7 +1,21 @@
-from GUI import GUI
-import Database as DB
+from gui import FinanceManagerGUI
+
+"""Entry point for the Finance Manager application"""
+
+
+def main():
+    """Main entry point"""
+    app = FinanceManagerGUI()
+    try:
+        app.run()
+    except KeyboardInterrupt:
+        print("\nApplication closed by user")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        raise
+    finally:
+        app.close()
+
 
 if __name__ == "__main__":
-    print("You are now using the Personal Financial Tracker made by Oximas")
-    app = GUI()
-    app.run()
+    main()

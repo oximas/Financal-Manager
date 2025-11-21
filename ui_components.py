@@ -162,8 +162,10 @@ class MessageHelper:
 
 class VaultSummaryCard(ctk.CTkFrame):
     """A card displaying vault information"""
-
+    
     def __init__(self, parent, vault_name:str, balance:float):
+        super().__init__(parent, corner_radius=10, fg_color=UIConfig.COLOR_FRAME_DARK)
+        
         name_label = ctk.CTkLabel(
             self,
             text=f"{vault_name}:",
@@ -180,6 +182,7 @@ class VaultSummaryCard(ctk.CTkFrame):
             text_color=UIConfig.COLOR_TEXT_SECONDARY,
         )
         balance_label.pack(side="right", padx=10, pady=5)
+    
 
 class MenuButton(ctk.CTkButton):
     """Styled button for menu navigation"""
