@@ -181,7 +181,7 @@ class VaultSummaryCard(ctk.CTkFrame):
         )
         balance_label.pack(side="right", padx=10, pady=5)
 
-class MenuButtom(ctk.CTkButton):
+class MenuButton(ctk.CTkButton):
     """Styled button for menu navigation"""
 
     def __init__(

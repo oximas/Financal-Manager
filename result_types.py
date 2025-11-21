@@ -54,18 +54,47 @@ class Result(Generic[T]):
         return self.status ==ResultStatus.ERROR
 
 @dataclass
-class AuthResult:
-    """Result of authintication operations"""
-    success: bool
-    username: Optional[str] = None
-    error: Optional[AuthError] = None
-    message: Optional[str] = None
+class AuthSuccess:
+    """Successful authentication result"""
+    username: str
+
 
 @dataclass
-class TransactionResult:
-    """Result of transaction operations"""
-    success: bool
-    error: Optional[TransactionError] = None
-    message: Optional[str] = None
-    amount: Optional[float] = None
+class AuthFailure:
+    """Failed authentication result"""
+    error: AuthError
+    message: str
+
+
+# Union type for authentication results
+AuthResult = AuthSuccess | AuthFailure
+
+
+@dataclass
+class TransactionSuccess:
+    """Successful transaction result"""
+    amount: float
+    message: str = "Transaction successful"
+
+
+@dataclass
+class TransactionFailure:
+    """Failed transaction result"""
+    error: TransactionError
+    message: str
+
+
+# Union type for transaction results
+TransactionResult = TransactionSuccess | TransactionFailure
+
+
+# Helper functions for type checking
+def is_auth_success(result: AuthResult) -> bool:
+    """Check if authentication was successful"""
+    return isinstance(result, AuthSuccess)
+
+
+def is_transaction_success(result: TransactionResult) -> bool:
+    """Check if transaction was successful"""
+    return isinstance(result, TransactionSuccess)
     
