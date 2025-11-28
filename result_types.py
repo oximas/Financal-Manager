@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Generic, TypeVar
+from typing import Optional, Generic, TypeGuard, TypeVar
 from enum import Enum
 
 
@@ -88,13 +88,4 @@ class TransactionFailure:
 TransactionResult = TransactionSuccess | TransactionFailure
 
 
-# Helper functions for type checking
-def is_auth_success(result: AuthResult) -> bool:
-    """Check if authentication was successful"""
-    return isinstance(result, AuthSuccess)
-
-
-def is_transaction_success(result: TransactionResult) -> bool:
-    """Check if transaction was successful"""
-    return isinstance(result, TransactionSuccess)
     

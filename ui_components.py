@@ -1,6 +1,7 @@
 import customtkinter as ctk
-from typing import Any, Callable, List, Optional, Dict, Tuple
+from typing import Any,Callable, List, Optional, Dict,Protocol, runtime_checkable
 from config import UIConfig
+from CTkDatePicker import CTkDatePicker
 
 class FormField:
     """Represents a form field with label and input"""
@@ -16,6 +17,7 @@ class FormField:
             default_value:str = ""):
         self.label = ctk.CTkLabel(parent, text= label_text)
         self.label.grid(row=row,column=0,sticky="e",padx=10,pady=5)
+        self.widget:Any
 
         if field_type == "entry":
             self.widget = ctk.CTkEntry(parent,placeholder_text=placeholder,show=show)
@@ -28,17 +30,12 @@ class FormField:
                 values=values or []
             )
         elif field_type == "date":
-            try:
-                from CTkDatePicker import CTkDatePicker
-                self.widget = CTkDatePicker(parent)
-                self.widget.set_date_format("%Y-%m-%d")
-
-            except ModuleNotFoundError:
-                print("CTkDatePicker doesnt exist")
+            self.widget = CTkDatePicker(parent)
+            self.widget.set_date_format("%Y-%m-%d")
         self.widget.grid(row=row,column=1,padx=10,pady=5)
         self.field_type = field_type
     
-    def get_value(self)->str:
+    def get_value(self)->Any:
         """Get the current values of the field"""
         if self.field_type=="combobox":
             return self.variable.get()
