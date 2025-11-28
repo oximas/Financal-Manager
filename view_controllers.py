@@ -117,11 +117,11 @@ class SignupController(BaseViewController):
             values["confirm_password"]
         )
         
-        if isinstance(result, AuthSuccess): #maybe use the functions from result type instead ???
+        if is_auth_success(result):
             from view_factory import ViewFactory
             ViewFactory.show_user_menu(self.master, self.manager, self.database)
         else:
-            MessageHelper.show_error("Signup Failed", result.message)
+            MessageHelper.show_error("Signup Failed", result.message) #type:ignore
     
     def on_back(self):
         from view_factory import ViewFactory

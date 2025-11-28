@@ -1,4 +1,3 @@
-
 import sqlite3
 from tkinter import messagebox
 from tkinter import filedialog
@@ -11,13 +10,13 @@ class Database:
         self.create_tables()
     
     def create_tables(self):
-        #if pass is null they arnet a user 
+        #if pass is null they arnet a user
         #but just some one you loan with
         self.c.execute('''
         CREATE TABLE IF NOT EXISTS users (
             user_id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
-            password TEXT 
+            password TEXT
         )
         ''')
 
@@ -117,10 +116,10 @@ class Database:
         if self.user_exists(username):
             raise Exception("Can't add a user that exists")
         self.c.execute("INSERT INTO users (username, password) VALUES (?, ?)", 
-                       (username, password))
+                    (username, password))
         user_id = self.get_user_id(username)
         self.c.execute("INSERT INTO vaults (user_id,vault_name,balance) VALUES (?,?,0)",
-                       (user_id,"Main"))
+                    (user_id,"Main"))
         self.conn.commit()
         return True
     
@@ -222,9 +221,9 @@ class Database:
         unit_id = self.get_unit_id(unit)
         
         self.c.execute('''INSERT INTO transactions 
-                       (vault_id, transaction_type,amount,category_id, description, quantity,unit_id,date)
+                    (vault_id, transaction_type,amount,category_id, description, quantity,unit_id,date)
                         VALUES (?, ?, ?, ?, ?, ?, ?,?)
-                  ''', 
+                    ''',
                 (vault_id,transaction_type,money_amount,category_id,description.lower(),quantity,unit_id,date))
         self.conn.commit()
         return True
@@ -236,7 +235,7 @@ class Database:
         to_vault_id = self.get_vault_id(to_user,to_vault)
         def loan_exists():
             self.c.execute("SELECT * FROM loans WHERE from_vault_id= ? AND to_vault_id= ?",
-                           (from_vault_id,to_vault_id))
+                        (from_vault_id,to_vault_id))
             loan = self.c.fetchall()
             return len(loan)>=1
         if(loan_exists()):
@@ -246,12 +245,12 @@ class Database:
                             (money_amount,from_vault_id,to_vault_id))
         else:
             self.c.execute("INSERT INTO loans (from_vault_id,to_vault_id,amount) VALUES(?,?,?)",
-                           (from_vault_id,to_vault_id,money_amount))
+                        (from_vault_id,to_vault_id,money_amount))
         self.conn.commit()
         
     def get_loans(self, username):
         query = '''
-        SELECT 
+        SELECT
             u_from.username AS from_user,
             u_to.username AS to_user,
             SUM(l.amount) AS total_sum
@@ -306,7 +305,7 @@ class Database:
     
     def transfer(self,from_user,from_vault,to_user,to_vault,amount,on_insufficent_funds,description=None,is_loan_=False):
         transaction_type= "Loan" if is_loan_ else "Transfer"
-        description = description if description else f"{transaction_type}ing money" 
+        description = description if description else f"{transaction_type}ing money"
         try:
             self.remove_from_vault(from_user,from_vault,amount,on_insufficent_funds)
             self.add_to_vault(to_user,to_vault,amount)
@@ -336,7 +335,6 @@ class Database:
                 LEFT JOIN units ON transactions.unit_id = units.unit_id
                 WHERE vaults.user_id = ?
                 ORDER BY transactions.date DESC
-               
             ''',(self.get_user_id(username),))
             
             rows = self.c.fetchall()
@@ -362,9 +360,9 @@ class Database:
             
             return df
 
-         # Prompt the user for the file location and name
+        # Prompt the user for the file location and name
         file_path = filedialog.asksaveasfilename(defaultextension=".xlsx",
-                                                 filetypes=[("Excel files", "*.xlsx")])
+                                                filetypes=[("Excel files", "*.xlsx")])
         if file_path:
             # Query for data to export
             transactions = get_transactions_as_df()
@@ -373,7 +371,7 @@ class Database:
                 transactions.to_excel(writer, sheet_name='Transactions', index=False)
                 loans.to_excel(writer, sheet_name='Loans', index=False)
             # Create a DataFrame and export to the selected Excel file
-            print(f"Transactions and loans where exported to {file_path}")    
+            print(f"Transactions and loans where exported to {file_path}")
 
 class InsufficentFundsError(Exception):
     pass
