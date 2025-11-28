@@ -25,7 +25,7 @@ class Manager:
     
     def __init__(self, db_file: str):
         self.db = DB(db_file)
-        self._current_username: Optional[str] = None
+        self._current_username: str = ""
     
     # Authentication Methods
     
@@ -95,7 +95,7 @@ class Manager:
     
     def logout(self):
         """Log out the current user"""
-        self._current_username = None
+        self._current_username = ""
     
     # Transaction Methods
     
@@ -158,7 +158,7 @@ class Manager:
         amount: str,
         category: str,
         description: str,
-        quantity: Optional[str] = None,
+        quantity: float = 1,
         unit: Optional[str] = None,
         date: Optional[str] = None
     ) -> TransactionResult:
@@ -306,18 +306,33 @@ class Manager:
         """Check if a user is currently logged in"""
         return self._current_username is not None
     
-    def get_vault_names(self) -> List[str]:
+    #User Methods
+    def get_usernames(self) -> List[str]:
+        return [""]
+    
+    #Vault Methods
+    def get_current_user_vault_names(self) -> List[str]:
         """Get list of vault names for current user"""
         if not self.is_logged_in:
             return []
         return self.db.get_user_vault_names(self._current_username)
     
-    def get_vaults(self) -> Dict[str, float]:
+    def get_current_user_vaults(self) -> Dict[str, float]:
         """Get dictionary of vault names and balances for current user"""
         if not self.is_logged_in:
             return {}
         return self.db.get_user_vaults(self._current_username)
     
+    def get_user_vault_names(self,username):
+        if not self.is_logged_in:
+            return {}
+        return self.db.get_user_vault_names(username)
+    
+    def add_vault_to_current_user(self,vault_name:str):
+        if not self.is_logged_in:
+            return {}
+        self.db.add_vault(self._current_username,vault_name)
+    #Balance Methods
     def get_total_balance(self) -> float:
         """Get total balance across all vaults for current user"""
         if not self.is_logged_in:
@@ -328,5 +343,20 @@ class Manager:
         """Get balance for a specific vault"""
         if not self.is_logged_in:
             return 0.0
-        vaults = self.get_vaults()
+        vaults = self.get_current_user_vaults()
         return vaults.get(vault_name, 0.0)
+    
+    #Category Methods
+    def get_category_names(self) -> List[str]:
+        return self.db.get_category_names()
+    
+    #Category Methods
+    def get_unit_names(self) -> List[str]:
+        return self.db.get_unit_names()
+    
+
+    #Exporting and files
+    def export_current_user_db_to_excel(self):
+        self.db.export_to_excel(self._current_username)
+
+    

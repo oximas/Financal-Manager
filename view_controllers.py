@@ -1,20 +1,21 @@
 # view_controllers.py
 """View controllers for different screens"""
+from manager import Manager
 import customtkinter as ctk
 from typing import Callable
 from datetime import datetime
 from config import UIConfig
 from ui_components import *
 from result_types import *
+from view_factory import ViewFactory
 
 
 class BaseViewController:
     """Base class for all view controllers"""
     
-    def __init__(self, master: ctk.CTk, manager, database):
+    def __init__(self, master: ctk.CTk, manager:Manager):
         self.master = master
         self.manager = manager
-        self.database = database
         self.widgets = []
     
     def clear_widgets(self):
@@ -51,11 +52,11 @@ class MainMenuController(BaseViewController):
     
     def on_login_clicked(self):
         from view_factory import ViewFactory
-        ViewFactory.show_login(self.master, self.manager, self.database)
+        ViewFactory.show_login(self.master, self.manager)
     
     def on_signup_clicked(self):
         from view_factory import ViewFactory
-        ViewFactory.show_signup(self.master, self.manager, self.database)
+        ViewFactory.show_signup(self.master, self.manager)
 
 
 class LoginController(BaseViewController):
@@ -83,13 +84,13 @@ class LoginController(BaseViewController):
         
         if isinstance(result, AuthSuccess):
             from view_factory import ViewFactory
-            ViewFactory.show_user_menu(self.master, self.manager, self.database)
+            ViewFactory.show_user_menu(self.master, self.manager)
         else:  # AuthFailure
             MessageHelper.show_error("Login Failed", result.message)
     
     def on_back(self):
         from view_factory import ViewFactory
-        ViewFactory.show_main_menu(self.master, self.manager, self.database)
+        ViewFactory.show_main_menu(self.master, self.manager)
 
 
 class SignupController(BaseViewController):
@@ -119,13 +120,13 @@ class SignupController(BaseViewController):
         
         if is_auth_success(result):
             from view_factory import ViewFactory
-            ViewFactory.show_user_menu(self.master, self.manager, self.database)
+            ViewFactory.show_user_menu(self.master, self.manager)
         else:
-            MessageHelper.show_error("Signup Failed", result.message) #type:ignore
+            MessageHelper.show_error("Signup Failed", result.message) 
     
     def on_back(self):
         from view_factory import ViewFactory
-        ViewFactory.show_main_menu(self.master, self.manager, self.database)
+        ViewFactory.show_main_menu(self.master, self.manager)
 
 
 class UserMenuController(BaseViewController):
@@ -149,30 +150,30 @@ class UserMenuController(BaseViewController):
     
     def on_deposit(self):
         from view_factory import ViewFactory
-        ViewFactory.show_transaction(self.master, self.manager, self.database, "Deposit")
+        ViewFactory.show_transaction(self.master, self.manager, "Deposit")
     
     def on_withdraw(self):
         from view_factory import ViewFactory
-        ViewFactory.show_transaction(self.master, self.manager, self.database, "Withdraw")
+        ViewFactory.show_transaction(self.master, self.manager, "Withdraw")
     
     def on_transfer(self):
         from view_factory import ViewFactory
-        ViewFactory.show_transfer(self.master, self.manager, self.database)
+        ViewFactory.show_transfer(self.master, self.manager)
     
     def on_summary(self):
         from view_factory import ViewFactory
-        ViewFactory.show_summary(self.master, self.manager, self.database)
+        ViewFactory.show_summary(self.master, self.manager)
     
     def on_account(self):
         from view_factory import ViewFactory
-        ViewFactory.show_account(self.master, self.manager, self.database)
+        ViewFactory.show_account(self.master, self.manager)
 
 
 class TransactionController(BaseViewController):
     """Controller for deposit/withdraw screens"""
     
-    def __init__(self, master, manager, database, transaction_type: str):
-        super().__init__(master, manager, database)
+    def __init__(self, master, manager, transaction_type: str):
+        super().__init__(master, manager)
         self.transaction_type = transaction_type
     
     def show(self):
@@ -188,8 +189,8 @@ class TransactionController(BaseViewController):
                 "category",
                 "Category:",
                 field_type="combobox",
-                values=self.database.get_category_names(),
-                default_value=self.database.get_category_names()[0] if self.database.get_category_names() else "None"
+                values=self.manager.get_category_names(),
+                default_value=self.manager.get_category_names()[0] if self.manager.get_category_names() else "None"
             ) \
             .add_field("description", "Description:", placeholder="Enter description")
         
@@ -200,8 +201,8 @@ class TransactionController(BaseViewController):
                     "unit",
                     "Unit:",
                     field_type="combobox",
-                    values=self.database.get_unit_names(),
-                    default_value=self.database.get_unit_names()[0] if self.database.get_unit_names() else "None"
+                    values=self.manager.get_unit_names(),
+                    default_value=self.manager.get_unit_names()[0] if self.manager.get_unit_names() else "None"
                 )
         
         # Add vault selection
@@ -209,7 +210,7 @@ class TransactionController(BaseViewController):
             "vault",
             "Vault:",
             field_type="combobox",
-            values=self.manager.get_vault_names(),
+            values=self.manager.get_current_user_vault_names(),
             default_value="Main"
         ) \
         .add_field("date", "Date:", field_type="date")
@@ -246,7 +247,7 @@ class TransactionController(BaseViewController):
                 amount=values["amount"],
                 category=values["category"],
                 description=values["description"],
-                quantity=values.get("quantity"),
+                quantity=float(values.get("quantity")),
                 unit=values.get("unit"),
                 date=date_str
             )
@@ -264,7 +265,7 @@ class TransactionController(BaseViewController):
     
     def on_back(self):
         from view_factory import ViewFactory
-        ViewFactory.show_user_menu(self.master, self.manager, self.database)
+        ViewFactory.show_user_menu(self.master, self.manager)
 
 
 class TransferController(BaseViewController):
@@ -276,7 +277,7 @@ class TransferController(BaseViewController):
         
         form_frame = CenteredForm(self.master)
         
-        from_vault_names = self.manager.get_vault_names()
+        from_vault_names = self.manager.get_current_user_vault_names()
         
         self.form = FormBuilder(form_frame)
         self.form.add_title("Transfer Menu") \
@@ -291,14 +292,14 @@ class TransferController(BaseViewController):
                 "to_user",
                 "To User:",
                 field_type="combobox",
-                values=self.database.get_usernames(),
+                values=self.manager.get_usernames(),
                 default_value=self.manager.current_username
             ) \
             .add_field(
                 "to_vault",
                 "To Vault:",
                 field_type="combobox",
-                values=self.manager.get_vault_names(),
+                values=self.manager.get_current_user_vault_names(),
                 default_value="Main"
             ) \
             .add_field("amount", "Amount:", placeholder="Enter amount") \
@@ -312,7 +313,7 @@ class TransferController(BaseViewController):
     
     def on_user_changed(self, selected_user: str):
         """Update the to_vault options when user selection changes"""
-        to_vault_names = self.database.get_user_vault_names(selected_user)
+        to_vault_names = self.manager.get_user_vault_names(selected_user)
         to_vault_field = self.form.fields["to_vault"]
         
         if to_vault_names:
@@ -343,7 +344,7 @@ class TransferController(BaseViewController):
     
     def on_back(self):
         from view_factory import ViewFactory
-        ViewFactory.show_user_menu(self.master, self.manager, self.database)
+        ViewFactory.show_user_menu(self.master, self.manager)
 
 
 class SummaryController(BaseViewController):
@@ -387,7 +388,7 @@ class SummaryController(BaseViewController):
         )
         vault_title.pack(pady=5)
         
-        vaults = self.manager.get_vaults()
+        vaults = self.manager.get_current_user_vaults()
         for vault_name, balance in vaults.items():
             vault_card = VaultSummaryCard(vault_frame, vault_name, balance)
             vault_card.pack(pady=3, padx=10, fill='x')
@@ -403,7 +404,7 @@ class SummaryController(BaseViewController):
     
     def on_back(self):
         from view_factory import ViewFactory
-        ViewFactory.show_user_menu(self.master, self.manager, self.database)
+        ViewFactory.show_user_menu(self.master, self.manager)
 
 
 class AccountController(BaseViewController):
@@ -443,7 +444,7 @@ class AccountController(BaseViewController):
         
         if new_vault_name:
             try:
-                self.database.add_vault(self.manager.current_username, new_vault_name)
+                self.manager.add_vault_to_current_user(new_vault_name)
                 MessageHelper.show_info(
                     "Success",
                     f"Vault '{new_vault_name}' added successfully!"
@@ -462,7 +463,7 @@ class AccountController(BaseViewController):
     
     def on_export_excel(self):
         try:
-            self.database.export_to_excel(self.manager.current_username)
+            self.manager.export_current_user_db_to_excel()
             MessageHelper.show_info("Success", "Data exported successfully!")
         except PermissionError:
             MessageHelper.show_error(
@@ -475,8 +476,8 @@ class AccountController(BaseViewController):
     def on_logout(self):
         self.manager.logout()
         from view_factory import ViewFactory
-        ViewFactory.show_main_menu(self.master, self.manager, self.database)
+        ViewFactory.show_main_menu(self.master, self.manager)
     
     def on_back(self):
         from view_factory import ViewFactory
-        ViewFactory.show_user_menu(self.master, self.manager, self.database)
+        ViewFactory.show_user_menu(self.master, self.manager)

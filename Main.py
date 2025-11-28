@@ -13,8 +13,6 @@ def main():
     except Exception as e:
         print(f"An error occurred: {e}")
         raise
-    finally:
-        app.close()
 
 
 if __name__ == "__main__":

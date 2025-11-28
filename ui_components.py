@@ -43,17 +43,17 @@ class FormField:
         if self.field_type=="combobox":
             return self.variable.get()
         elif self.field_type=="date":
-            return self.widget.get_date() if hasattr(self.widget,'get_date') else "" #type:ignore
+            return self.widget.get_date() if hasattr(self.widget,'get_date') else ""
         else:
-            return self.widget.get() #type:ignore
+            return self.widget.get()
     
     def set_value(self, value:str):
         """Set the value of the field"""
         if self.field_type == "combobox":
             self.variable.set(value)
         elif self.field_type != "date":
-            self.widget.delete(0,"end")#type:ignore
-            self.widget.insert(0,value)#type:ignore
+            self.widget.delete(0,"end")
+            self.widget.insert(0,value)
 
 class FormBuilder:
     """Builder for creating forms with multiple fields"""

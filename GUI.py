@@ -27,8 +27,7 @@ class FinanceManagerGUI:
         set_default_color_theme(AppConfig.COLOR_THEME)
     
     def _initialize_backend(self):
-        """Initialize database and manager"""
-        self.database = Database(AppConfig.DB_NAME)
+        """Initialize manager"""
         self.manager = Manager(AppConfig.DB_NAME)
     
     def _initialize_window(self):
@@ -43,7 +42,7 @@ class FinanceManagerGUI:
     def run(self):
         """Start the application"""
         # Show the main menu
-        ViewFactory.show_main_menu(self.master, self.manager, self.database)
+        ViewFactory.show_main_menu(self.master, self.manager)
         
         # For debugging specific menus, uncomment and modify:
         # self.manager._current_username = "TestUser"
@@ -51,8 +50,3 @@ class FinanceManagerGUI:
         
         # Start the main event loop
         self.master.mainloop()
-    
-    def close(self):
-        """Clean up resources"""
-        if hasattr(self, 'database'):
-            self.database.close()
