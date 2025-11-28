@@ -70,7 +70,6 @@ class Manager:
             AuthSuccess or AuthFailure
         """
         username = username.capitalize()
-        
         if self.db.user_exists(username):
             return AuthFailure(
                 error=AuthError.USERNAME_EXISTS,
@@ -102,7 +101,7 @@ class Manager:
     def process_deposit(
         self,
         vault: str,
-        amount: str,
+        amount: float,
         category: str,
         description: str,
         date: Optional[str] = None
@@ -121,8 +120,7 @@ class Manager:
             TransactionSuccess or TransactionFailure
         """
         try:
-            amount_float = float(amount)
-            if amount_float < 0:
+            if amount < 0:
                 return TransactionFailure(
                     error=TransactionError.INVALID_AMOUNT,
                     message="Amount must be positive"
@@ -131,20 +129,15 @@ class Manager:
             self.db.deposit(
                 self._current_username,
                 vault,
-                amount_float,
+                amount,
                 category,
                 description,
                 date
             )
             
             return TransactionSuccess(
-                amount=amount_float,
+                amount=amount,
                 message="Deposit successful"
-            )
-        except ValueError:
-            return TransactionFailure(
-                error=TransactionError.INVALID_AMOUNT,
-                message="Invalid amount format"
             )
         except Exception as e:
             return TransactionFailure(
@@ -155,7 +148,7 @@ class Manager:
     def process_withdraw(
         self,
         vault: str,
-        amount: str,
+        amount: float,
         category: str,
         description: str,
         quantity: float = 1,
@@ -178,19 +171,18 @@ class Manager:
             TransactionSuccess or TransactionFailure
         """
         try:
-            amount_float = float(amount)
-            if amount_float < 0:
+            if amount < 0:
                 return TransactionFailure(
                     error=TransactionError.INVALID_AMOUNT,
                     message="Amount must be positive"
                 )
             
             # Check if sufficient funds
-            if not self.db.vault_has_balance(self._current_username, vault, amount_float):
+            if not self.db.vault_has_balance(self._current_username, vault, amount):
                 current_balance = self.get_vault_balance(vault)
                 return TransactionFailure(
                     error=TransactionError.INSUFFICIENT_FUNDS,
-                    message=f"Insufficient funds. Balance: {current_balance:.2f}, Required: {amount_float:.2f}"
+                    message=f"Insufficient funds. Balance: {current_balance:.2f}, Required: {amount:.2f}"
                 )
             
             def on_insufficient_funds():
@@ -199,7 +191,7 @@ class Manager:
             self.db.withdraw(
                 self._current_username,
                 vault,
-                amount_float,
+                amount,
                 category,
                 description,
                 on_insufficient_funds,
@@ -209,7 +201,7 @@ class Manager:
             )
             
             return TransactionSuccess(
-                amount=amount_float,
+                amount=amount,
                 message="Withdrawal successful"
             )
         except ValueError:

@@ -240,7 +240,7 @@ class TransactionController(BaseViewController):
                 amount=values["amount"],
                 category=values["category"],
                 description=values["description"],
-                quantity=values.get("quantity"),#type:ignore
+                quantity=values.get("quantity"),
                 unit=values.get("unit"),
                 date=date_str
             )
