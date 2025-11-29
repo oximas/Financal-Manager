@@ -296,7 +296,7 @@ class Manager:
     @property
     def is_logged_in(self) -> bool:
         """Check if a user is currently logged in"""
-        return self._current_username is not None
+        return bool(self._current_username)
     
     #User Methods
     def get_usernames(self) -> List[str]:
