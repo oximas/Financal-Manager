@@ -1,5 +1,6 @@
 # manager.py
 """Business logic layer for the Finance Manager application"""
+from datetime import datetime
 from typing import Optional, Dict, List
 from enum import Enum
 from Database import Database as DB
@@ -97,7 +98,24 @@ class Manager:
         self._current_username = ""
     
     # Transaction Methods
-    
+    def process_transaction(self,transaction_type:TransactionType,
+                            category:str,
+                            ammount:float,
+                            from_user:Optional[str]=None,
+                            to_user:Optional[str]=None,
+                            from_vault:Optional[str]=None,
+                            to_vault:Optional[str]=None,
+                            description: Optional[str]=None,
+                            date:Optional[str]=None
+                            ):
+        if not date:
+            date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        if transaction_type==TransactionType.DEPOSIT:
+            to_user = self.current_username
+            isinstance(from_vault,str)
+            
+        pass
     def process_deposit(
         self,
         vault: str,
@@ -119,31 +137,27 @@ class Manager:
         Returns:
             TransactionSuccess or TransactionFailure
         """
-        try:
-            if amount < 0:
-                return TransactionFailure(
-                    error=TransactionError.INVALID_AMOUNT,
-                    message="Amount must be positive"
-                )
-            
-            self.db.deposit(
-                self._current_username,
-                vault,
-                amount,
-                category,
-                description,
-                date
-            )
-            
-            return TransactionSuccess(
-                amount=amount,
-                message="Deposit successful"
-            )
-        except Exception as e:
+        if not date:
+            date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        if amount < 0:
             return TransactionFailure(
-                error=TransactionError.VALIDATION_ERROR,
-                message=str(e)
+                error=TransactionError.INVALID_AMOUNT,
+                message="Amount must be positive"
             )
+        
+        self.db.deposit(
+            self._current_username,
+            vault,
+            amount,
+            category,
+            description,
+            date
+        )
+        
+        return TransactionSuccess(
+            amount=amount,
+            message="Deposit successful"
+        )
     
     def process_withdraw(
         self,
@@ -170,58 +184,47 @@ class Manager:
         Returns:
             TransactionSuccess or TransactionFailure
         """
-        try:
-            if amount < 0:
-                return TransactionFailure(
-                    error=TransactionError.INVALID_AMOUNT,
-                    message="Amount must be positive"
-                )
-            
-            # Check if sufficient funds
-            if not self.db.vault_has_balance(self._current_username, vault, amount):
-                current_balance = self.get_vault_balance(vault)
-                return TransactionFailure(
-                    error=TransactionError.INSUFFICIENT_FUNDS,
-                    message=f"Insufficient funds. Balance: {current_balance:.2f}, Required: {amount:.2f}"
-                )
-            
-            def on_insufficient_funds():
-                pass  # Already handled above
-            
-            self.db.withdraw(
-                self._current_username,
-                vault,
-                amount,
-                category,
-                description,
-                on_insufficient_funds,
-                quantity,
-                unit,
-                date
-            )
-            
-            return TransactionSuccess(
-                amount=amount,
-                message="Withdrawal successful"
-            )
-        except ValueError:
+        if not date:
+            date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        if amount < 0:
             return TransactionFailure(
                 error=TransactionError.INVALID_AMOUNT,
-                message="Invalid amount format"
+                message="Amount must be positive"
             )
-        except Exception as e:
+        
+        # Check if sufficient funds
+        if not self.db.vault_has_balance(self._current_username, vault, amount):
+            current_balance = self.get_vault_balance(vault)
             return TransactionFailure(
-                error=TransactionError.VALIDATION_ERROR,
-                message=str(e)
+                error=TransactionError.INSUFFICIENT_FUNDS,
+                message=f"Insufficient funds. Balance: {current_balance:.2f}, Required: {amount:.2f}"
             )
+        
+        self.db.withdraw(
+            self._current_username,
+            vault,
+            amount,
+            category,
+            description,
+            quantity,
+            unit,
+            date
+        )
+        
+        return TransactionSuccess(
+            amount=amount,
+            message="Withdrawal successful"
+        )
     
     def process_transfer(
         self,
         from_vault: str,
         to_user: str,
         to_vault: str,
-        amount: str,
-        reason: Optional[str] = None
+        amount: float,
+        reason: Optional[str] = None,
+        date:Optional[str]=None
     ) -> TransactionResult:
         """
         Process a transfer transaction.
@@ -236,55 +239,43 @@ class Manager:
         Returns:
             TransactionSuccess or TransactionFailure
         """
-        try:
-            amount_float = float(amount)
-            
-            if amount_float < 0:
-                return TransactionFailure(
-                    error=TransactionError.INVALID_AMOUNT,
-                    message="Amount must be positive"
-                )
-            
-            if self._current_username == to_user and from_vault == to_vault:
-                return TransactionFailure(
-                    error=TransactionError.SAME_VAULT_TRANSFER,
-                    message="Cannot transfer to the same vault"
-                )
-            
-            if not self.db.vault_has_balance(self._current_username, from_vault, amount_float):
-                current_balance = self.get_vault_balance(from_vault)
-                return TransactionFailure(
-                    error=TransactionError.INSUFFICIENT_FUNDS,
-                    message=f"Insufficient funds. Balance: {current_balance:.2f}, Required: {amount_float:.2f}"
-                )
-            
-            def on_insufficient_funds():
-                pass  # Already handled
-            
-            self.db.transfer(
-                self._current_username,
-                from_vault,
-                to_user,
-                to_vault,
-                amount_float,
-                on_insufficient_funds,
-                reason
-            )
-            
-            return TransactionSuccess(
-                amount=amount_float,
-                message="Transfer successful"
-            )
-        except ValueError:
+        if not date:
+            date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        if amount < 0:
             return TransactionFailure(
                 error=TransactionError.INVALID_AMOUNT,
-                message="Invalid amount format"
+                message="Amount must be positive"
             )
-        except Exception as e:
+        
+        if self.current_username == to_user and from_vault == to_vault:
             return TransactionFailure(
-                error=TransactionError.VALIDATION_ERROR,
-                message=str(e)
+                error=TransactionError.SAME_VAULT_TRANSFER,
+                message="Cannot transfer to the same vault"
             )
+        
+        if not self.db.vault_has_balance(self._current_username, from_vault, amount):
+            current_balance = self.get_vault_balance(from_vault)
+            return TransactionFailure(
+                error=TransactionError.INSUFFICIENT_FUNDS,
+                message=f"Insufficient funds. Balance: {current_balance:.2f}, Required: {amount:.2f}"
+            )
+        
+        self.db.transfer(
+            self._current_username,
+            from_vault,
+            to_user,
+            to_vault,
+            amount,
+            reason,
+            date
+        )
+        
+        return TransactionSuccess(
+            amount=amount,
+            message="Transfer successful"
+        )
+
     
     # User Information Methods
     
@@ -300,7 +291,7 @@ class Manager:
     
     #User Methods
     def get_usernames(self) -> List[str]:
-        return [""]
+        return self.db.get_usernames()
     
     #Vault Methods
     def get_current_user_vault_names(self) -> List[str]:

@@ -114,7 +114,7 @@ class FormBuilder:
         )
         self.current_row += 1
         return self
-    def get_values(self) -> Dict[str, str]:
+    def get_values(self) -> Dict[str, Any]:
         """Get all field values as a dictionary"""
         return {name: field.get_value() for name, field in self.fields.items()}
     

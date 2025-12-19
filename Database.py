@@ -1,7 +1,7 @@
 # Database.py
 """
 Database access layer for the Finance Manager application.
-Handles all database operations including users, vaults, transactions, and loans.
+Handles all database operations including users, vaults, transactions,etc.
 """
 import sqlite3
 from typing import Dict, List, Optional, Tuple, Callable
@@ -10,15 +10,10 @@ import pandas as pd
 from tkinter import filedialog
 
 
-class InsufficientFundsError(Exception):
-    """Raised when attempting to withdraw more money than available"""
-    pass
-
-
 class Database:
     """
     Database access layer for financial data.
-    Provides methods for CRUD operations on users, vaults, transactions, and loans.
+    Provides methods for CRUD operations on users, vaults, transactions,etc.
     """
     
     def __init__(self, db_name: str = 'financial_manager2.db'):
@@ -37,7 +32,6 @@ class Database:
         self._create_users_table()
         self._create_vaults_table()
         self._create_transactions_table()
-        self._create_loans_table()
         self._create_categories_table()
         self._create_units_table()
         self.conn.commit()
@@ -84,6 +78,7 @@ class Database:
             )
         ''')
     
+    #will impelement this later into my code, leaving it here to remember the original design
     def _create_loans_table(self) -> None:
         """Create the loans table"""
         self.c.execute('''
@@ -132,7 +127,7 @@ class Database:
         Returns:
             Normalized username
         """
-        return str(username).capitalize()
+        return username.capitalize()
     
     def get_user_id(self, username: str) -> int:
         """
@@ -197,7 +192,7 @@ class Database:
         )
         return self.c.fetchone() is not None
     
-    def add_user(self, username: str, password: Optional[str] = None) -> bool:
+    def add_user(self, username: str, password: Optional[str] = None) -> None:
         """
         Add a new user to the database.
         Creates a default "Main" vault for the user.
@@ -207,15 +202,12 @@ class Database:
             password: Optional password
             
         Returns:
-            True if user was added successfully
+            None
             
         Raises:
             Exception: If user already exists
         """
         username = self._normalize_username(username)
-        
-        if self.user_exists(username):
-            raise Exception("Can't add a user that exists")
         
         self.c.execute(
             "INSERT INTO users (username, password) VALUES (?, ?)",
@@ -229,7 +221,6 @@ class Database:
         )
         
         self.conn.commit()
-        return True
     
     # ==================== VAULT OPERATIONS ====================
     
@@ -279,7 +270,7 @@ class Database:
         except ValueError:
             return False
     
-    def add_vault(self, username: str, vault_name: str) -> bool:
+    def add_vault(self, username: str, vault_name: str) -> None:
         """
         Add a new vault for a user.
         
@@ -288,7 +279,7 @@ class Database:
             vault_name: Name of the new vault
             
         Returns:
-            True if vault was added successfully
+            None
             
         Raises:
             ValueError: If vault already exists
@@ -296,16 +287,12 @@ class Database:
         username = self._normalize_username(username)
         user_id = self.get_user_id(username)
         vault_name = vault_name.capitalize()
-        
-        if self.vault_exists(username, vault_name):
-            raise ValueError("Can't have duplicate vaults")
-        
+
         self.c.execute(
             "INSERT INTO vaults (user_id, vault_name, balance) VALUES (?, ?, 0)",
             (user_id, vault_name)
         )
         self.conn.commit()
-        return True
     
     def vault_has_balance(self, username: str, vault_name: str, amount: float) -> bool:
         """
@@ -332,11 +319,10 @@ class Database:
             return False
         
         balance = float(result[0])
-        amount = float(amount)
         
         return balance >= amount
     
-    def add_to_vault(self, username: str, vault_name: str, amount: float) -> bool:
+    def add_to_vault(self, username: str, vault_name: str, amount: float):
         """
         Add money to a vault.
         
@@ -346,7 +332,7 @@ class Database:
             amount: Amount to add
             
         Returns:
-            True if successful
+            None
         """
         username = self._normalize_username(username)
         user_id = self.get_user_id(username)
@@ -356,15 +342,13 @@ class Database:
             (amount, user_id, vault_name)
         )
         self.conn.commit()
-        return True
     
     def remove_from_vault(
         self,
         username: str,
         vault_name: str,
         amount: float,
-        on_insufficient_funds: Callable[[], None]
-    ) -> bool:
+    ):
         """
         Remove money from a vault.
         
@@ -375,16 +359,12 @@ class Database:
             on_insufficient_funds: Callback for insufficient funds
             
         Returns:
-            True if successful
+            None
             
         Raises:
             InsufficientFundsError: If vault has insufficient balance
         """
         username = self._normalize_username(username)
-        
-        if not self.vault_has_balance(username, vault_name, amount):
-            on_insufficient_funds()
-            raise InsufficientFundsError(f"Insufficient funds in vault '{vault_name}'")
         
         user_id = self.get_user_id(username)
         self.c.execute(
@@ -392,7 +372,6 @@ class Database:
             (amount, user_id, vault_name)
         )
         self.conn.commit()
-        return True
     
     def get_user_vault_names(self, username: str) -> List[str]:
         """
@@ -474,7 +453,7 @@ class Database:
         Args:
             username: User making the transaction
             vault_name: Vault for the transaction
-            transaction_type: Type of transaction (Deposit, Withdraw, Transfer, Loan)
+            transaction_type: Type of transaction (Deposit, Withdraw, Transfer)
             money_amount: Amount of money
             category: Transaction category
             description: Transaction description
@@ -485,13 +464,13 @@ class Database:
         Returns:
             True if successful
         """
-        if date is None:
+        if not date:
             date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
         vault_id = self.get_vault_id(username, vault_name)
         category_id = self.get_category_id(category)
         unit_id = self.get_unit_id(unit) if unit else None
-        
+
         self.c.execute(
             '''INSERT INTO transactions
             (vault_id, transaction_type, amount, category_id, description, quantity, unit_id, date)
@@ -657,7 +636,7 @@ class Database:
         category_name: str,
         description: str,
         date: Optional[str] = None
-    ) -> bool:
+    ) -> None:
         """
         Process a deposit transaction.
         
@@ -670,14 +649,13 @@ class Database:
             date: Optional date
             
         Returns:
-            True if successful
+            None
         """
         self.add_to_vault(username, vault_name, amount)
         self.add_transaction(
-            username, vault_name, "Deposit", float(amount),
+            username, vault_name, "Deposit",amount,
             category_name, description, date=date
         )
-        return True
     
     def withdraw(
         self,
@@ -686,11 +664,10 @@ class Database:
         amount: float,
         category_name: str,
         description: str,
-        on_insufficient_funds: Callable[[], None],
         quantity: Optional[float] = None,
         unit: Optional[str] = None,
         date: Optional[str] = None
-    ) -> bool:
+    ) -> None:
         """
         Process a withdrawal transaction.
         
@@ -708,15 +685,12 @@ class Database:
         Returns:
             True if successful, False if insufficient funds
         """
-        try:
-            self.remove_from_vault(username, vault_name, amount, on_insufficient_funds)
-            self.add_transaction(
-                username, vault_name, "Withdraw", -float(amount),
-                category_name, description, quantity, unit, date
-            )
-            return True
-        except InsufficientFundsError:
-            return False
+        self.remove_from_vault(username, vault_name, amount)
+        self.add_transaction(
+            username, vault_name, "Withdraw", -amount,
+            category_name, description, quantity, unit, date
+        )
+            
     
     def transfer(
         self,
@@ -725,10 +699,9 @@ class Database:
         to_user: str,
         to_vault: str,
         amount: float,
-        on_insufficient_funds: Callable[[], None],
         description: Optional[str] = None,
-        is_loan_: bool = False
-    ) -> bool:
+        date: Optional[str] = None
+    ) -> None:
         """
         Process a transfer between vaults.
         
@@ -738,72 +711,29 @@ class Database:
             to_user: User receiving money
             to_vault: Destination vault
             amount: Amount to transfer
-            on_insufficient_funds: Callback for insufficient funds
             description: Optional description
-            is_loan_: Whether this is a loan
-            
+            date: Optional(defaults to NOW) The date of the transfer
         Returns:
-            True if successful, False if insufficient funds
+            None
         """
-        transaction_type = "Loan" if is_loan_ else "Transfer"
-        description = description or f"{transaction_type}ing money"
-        
-        try:
-            self.remove_from_vault(from_user, from_vault, amount, on_insufficient_funds)
-            self.add_to_vault(to_user, to_vault, amount)
-            self.add_transaction(
-                from_user, from_vault, transaction_type,
-                -float(amount), "Others", description
-            )
-            self.add_transaction(
-                to_user, to_vault, transaction_type,
-                float(amount), "Others", description
-            )
-            return True
-        except InsufficientFundsError:
-            return False
-    
-    def loan(
-        self,
-        from_user: str,
-        from_vault: str,
-        to_user: str,
-        to_vault: str,
-        amount: float,
-        description: Optional[str] = None
-    ) -> bool:
-        """
-        Process a loan transaction.
-        
-        Args:
-            from_user: User lending money
-            from_vault: Source vault
-            to_user: User borrowing money
-            to_vault: Destination vault
-            amount: Loan amount
-            description: Optional description
-            
-        Returns:
-            True if successful
-        """
-        def dummy_callback():
-            pass
-        
-        success = self.transfer(
-            from_user, from_vault, to_user, to_vault,
-            amount, dummy_callback, description, is_loan_=True
+        description = description or f"transferring money"
+
+        self.remove_from_vault(from_user, from_vault, amount)
+        self.add_to_vault(to_user, to_vault, amount)
+        self.add_transaction(
+            from_user, from_vault,"transfer",
+            amount, "Others", description,quantity=None,unit=None,date=date
         )
-        
-        if success:
-            self.add_loan(from_user, from_vault, to_user, to_vault, amount)
-        
-        return success
+        self.add_transaction(
+            to_user, to_vault,"transfer",
+            amount, "Others", description,quantity=None,unit=None,date=date
+        )
     
     # ==================== EXPORT OPERATIONS ====================
     
     def export_to_excel(self, username: str) -> None:
         """
-        Export user transactions and loans to an Excel file.
+        Export user transactions to an Excel file.
         
         Args:
             username: User to export data for
@@ -812,7 +742,6 @@ class Database:
             PermissionError: If file is open or write permission denied
         """
         transactions_df = self._get_transactions_dataframe(username)
-        loans_df = self._get_loans_dataframe(username)
         
         file_path = filedialog.asksaveasfilename(
             defaultextension=".xlsx",
@@ -822,9 +751,8 @@ class Database:
         if file_path:
             with pd.ExcelWriter(file_path) as writer:
                 transactions_df.to_excel(writer, sheet_name='Transactions', index=False)
-                loans_df.to_excel(writer, sheet_name='Loans', index=False)
-            
-            print(f"Transactions and loans exported to {file_path}")
+
+            print(f"Transactions exported to {file_path}")
     
     def _get_transactions_dataframe(self, username: str) -> pd.DataFrame:
         """
@@ -837,7 +765,7 @@ class Database:
             DataFrame of transactions
         """
         query = '''
-            SELECT 
+            SELECT
                 vaults.vault_name,
                 transactions.transaction_type,
                 transactions.amount,
@@ -867,19 +795,3 @@ class Database:
             'Unit Name',
             'Date'
         ])
-    
-    def _get_loans_dataframe(self, username: str) -> pd.DataFrame:
-        """
-        Get loans as a pandas DataFrame.
-        
-        Args:
-            username: User to get loans for
-            
-        Returns:
-            DataFrame of loans
-        """
-        loans = self.get_loans(username)
-        return pd.DataFrame(
-            loans,
-            columns=['From User', 'To User', 'Total Loan Amount']
-        )

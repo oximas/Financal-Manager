@@ -23,7 +23,6 @@ class TransactionError(Enum):
     INVALID_AMOUNT = "invalid_amount"
     INVALID_VAULT = "invalid_vault"
     SAME_VAULT_TRANSFER = "same_vault_transfer"
-    VALIDATION_ERROR = "validation_error"
 
 @dataclass
 class Result(Generic[T]):

@@ -247,7 +247,7 @@ class TransactionController(BaseViewController):
                 amount=float(values["amount"]),
                 category=values["category"],
                 description=values["description"],
-                quantity=float(values.get("quantity")),
+                quantity=float(values.get("quantity")), #type:ignore
                 unit=values.get("unit"),
                 date=date_str
             )
@@ -330,7 +330,7 @@ class TransferController(BaseViewController):
             from_vault=values["from_vault"],
             to_user=values["to_user"],
             to_vault=values["to_vault"],
-            amount=values["amount"],
+            amount=float(values["amount"]),
             reason=values["reason"] if values["reason"] else None
         )
         

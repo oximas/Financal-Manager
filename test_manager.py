@@ -2,7 +2,7 @@ import pytest #type:ignore
 from unittest.mock import Mock
 from manager import Manager, TransactionType
 from result_types import (
-    AuthResult, AuthSuccess, AuthFailure, AuthError, 
+    AuthResult, AuthSuccess, AuthFailure, AuthError,
     TransactionError, TransactionFailure, TransactionSuccess
 )
 
@@ -128,13 +128,13 @@ class TestDeposit:
         manager._current_username = "John"
         manager.db.deposit.return_value = None
         
-        result = manager.process_deposit("Savings", 100.0, "Income", "Salary")
+        result = manager.process_deposit("Savings", 100.0, "Income", "Salary","2025/03/11")
         
         assert isinstance(result, TransactionSuccess)
         assert result.amount == 100.0
         assert "successful" in result.message
         manager.db.deposit.assert_called_once_with(
-            "John", "Savings", 100.0, "Income", "Salary", None
+            "John", "Savings", 100.0, "Income", "Salary", "2025/03/11"
         )
     
     def test_deposit_negative_amount(self, manager):
@@ -160,16 +160,6 @@ class TestDeposit:
         manager.db.deposit.assert_called_with(
             "John", "Savings", 100.0, "Income", "Salary", "2025-01-01"
         )
-    
-    def test_deposit_database_error(self, manager):
-        """Test deposit when database fails"""
-        manager._current_username = "John"
-        manager.db.deposit.side_effect = Exception("DB Error")
-        
-        result = manager.process_deposit("Savings", 100.0, "Income", "Salary")
-        
-        assert isinstance(result, TransactionFailure)
-        assert result.error == TransactionError.VALIDATION_ERROR
 
 
 class TestWithdraw:
@@ -243,7 +233,7 @@ class TestTransfer:
         manager.db.vault_has_balance.return_value = True
         
         result = manager.process_transfer(
-            "Savings", "Jane", "Checking", "100.0", "Gift"
+            "Savings", "Jane", "Checking", 100.0, "Gift"
         )
         
         assert isinstance(result, TransactionSuccess)
@@ -257,7 +247,7 @@ class TestTransfer:
         manager.db.get_user_vaults.return_value = {"Savings": 50.0}
         
         result = manager.process_transfer(
-            "Savings", "Jane", "Checking", "100.0"
+            "Savings", "Jane", "Checking", 100.0
         )
         
         assert isinstance(result, TransactionFailure)
@@ -269,7 +259,7 @@ class TestTransfer:
         manager._current_username = "John"
         
         result = manager.process_transfer(
-            "Savings", "John", "Savings", "50.0"
+            "Savings", "John", "Savings", 50.0
         )
         
         assert isinstance(result, TransactionFailure)
@@ -281,37 +271,13 @@ class TestTransfer:
         manager._current_username = "John"
         
         result = manager.process_transfer(
-            "Savings", "Jane", "Checking", "-50.0"
+            "Savings", "Jane", "Checking", -50.0
         )
         
         assert isinstance(result, TransactionFailure)
         assert result.error == TransactionError.INVALID_AMOUNT
         assert result.message != ""
     
-    def test_transfer_invalid_amount_format(self, manager):
-        """Test transfer with invalid amount format"""
-        manager._current_username = "John"
-        
-        result = manager.process_transfer(
-            "Savings", "Jane", "Checking", "invalid"
-        )
-        
-        assert isinstance(result, TransactionFailure)
-        assert result.error == TransactionError.INVALID_AMOUNT
-        assert result.message != ""
-    
-    def test_transfer_with_reason(self, manager):
-        """Test transfer with reason"""
-        manager._current_username = "John"
-        manager.db.vault_has_balance.return_value = True
-        
-        result = manager.process_transfer(
-            "Savings", "Jane", "Checking", "50.0", "Birthday gift"
-        )
-        
-        assert isinstance(result, TransactionSuccess)
-        call_args = manager.db.transfer.call_args
-        assert call_args[0][6] == "Birthday gift"
 
 
 class TestUserInformation:
