@@ -97,25 +97,7 @@ class Manager:
         """Log out the current user"""
         self._current_username = ""
     
-    # Transaction Methods
-    def process_transaction(self,transaction_type:TransactionType,
-                            category:str,
-                            ammount:float,
-                            from_user:Optional[str]=None,
-                            to_user:Optional[str]=None,
-                            from_vault:Optional[str]=None,
-                            to_vault:Optional[str]=None,
-                            description: Optional[str]=None,
-                            date:Optional[str]=None
-                            ):
-        if not date:
-            date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        if transaction_type==TransactionType.DEPOSIT:
-            to_user = self.current_username
-            isinstance(from_vault,str)
-            
-        pass
     def process_deposit(
         self,
         vault: str,
