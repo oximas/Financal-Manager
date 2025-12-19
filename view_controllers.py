@@ -66,6 +66,7 @@ class LoginController(BaseViewController):
         self.clear_widgets()
         self.master.title("Login")
         
+        #Creating the gui
         form_frame = CenteredForm(self.master)
         
         self.form = FormBuilder(form_frame)
@@ -74,7 +75,18 @@ class LoginController(BaseViewController):
             .add_field("password", "Password:", placeholder="Enter password", show="*") \
             .add_button("Login", self.on_login, UIConfig.COLOR_PRIMARY, UIConfig.COLOR_TEXT_DARK) \
             .add_button("Back", self.on_back, UIConfig.COLOR_SECONDARY, UIConfig.COLOR_TEXT_PRIMARY)
-    
+        
+        # Binding keys
+        self._bind_enter_key()
+        self._bind_back_key()
+
+    def _bind_enter_key(self):
+        """Bind Enter key to submit the form"""
+        self.master.bind('<Return>', lambda e: self.on_login())
+    def _bind_back_key(self):
+        """Bind Control-BackSpace key to go to the previous page"""
+        self.master.bind('<Control-BackSpace>', lambda e: self.on_back())
+
     def on_login(self):
         values = self.form.get_values()
         result: AuthResult = self.manager.login(
@@ -100,6 +112,7 @@ class SignupController(BaseViewController):
         self.clear_widgets()
         self.master.title("Sign Up")
         
+        #Creating the gui
         form_frame = CenteredForm(self.master)
         
         self.form = FormBuilder(form_frame)
@@ -109,6 +122,20 @@ class SignupController(BaseViewController):
             .add_field("confirm_password", "Confirm Password:", placeholder="Confirm password", show="*") \
             .add_button("Sign Up", self.on_signup, UIConfig.COLOR_PRIMARY, UIConfig.COLOR_TEXT_DARK) \
             .add_button("Back", self.on_back, UIConfig.COLOR_SECONDARY, UIConfig.COLOR_TEXT_PRIMARY)
+        
+        #Binding keys
+        self._bind_enter_key()
+        self._bind_back_key()
+    
+    def _bind_enter_key(self):
+        """Bind Enter key to submit the form"""
+        self.master.bind('<Return>', lambda e: self.on_signup())
+
+    def _bind_back_key(self):
+        """Bind Control-BackSpace key to go to the previous page"""
+        ####NOTE these functions that move from one screen to 
+        # another needs to also remove previous bindings or maybe add it before Binding keys to remove all prior bindings
+        self.master.bind('<Control-BackSpace>', lambda e: self.on_back())
     
     def on_signup(self):
         values = self.form.get_values()
@@ -223,6 +250,19 @@ class TransactionController(BaseViewController):
         ) \
         .add_button("Back", self.on_back, UIConfig.COLOR_SECONDARY, UIConfig.COLOR_TEXT_PRIMARY)
     
+        #Binding keys
+        self._bind_enter_key()
+        self._bind_back_key()
+    
+    def _bind_enter_key(self):
+        """Bind Enter key to submit the form"""
+        # Bind to entry fields only
+        self.master.bind('<Return>', lambda e: self.on_submit())
+
+    def _bind_back_key(self):
+        """Bind Control-BackSpace key to go to the previous page"""
+        self.master.bind('<Control-BackSpace>', lambda e: self.on_back())
+    
     def on_submit(self):
         values = self.form.get_values()
         
@@ -310,6 +350,20 @@ class TransferController(BaseViewController):
         # Setup dynamic vault update when user changes
         to_user_widget = self.form.fields["to_user"].widget
         to_user_widget.configure(command=self.on_user_changed)
+
+
+        #Binding keys
+        self._bind_enter_key()
+        self._bind_back_key()
+    
+    def _bind_enter_key(self):
+        """Bind Enter key to submit the form"""
+        # Bind to entry fields only (not comboboxes)
+        self.form.parent.winfo_toplevel().bind('<Return>', lambda e: self.on_submit())
+        
+    def _bind_back_key(self):
+        """Bind Control-BackSpace key to go to the previous page"""
+        self.master.bind('<Control-BackSpace>', lambda e: self.on_back())
     
     def on_user_changed(self, selected_user: str):
         """Update the to_vault options when user selection changes"""
