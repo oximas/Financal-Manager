@@ -7,26 +7,78 @@ from datetime import datetime
 from config import UIConfig
 from ui_components import *
 from result_types import *
-
+from key_binding_manager import KeyBindingManager, KeyAction
 
 
 class BaseViewController:
-    """Base class for all view controllers"""
+    """
+    Base class for all view controllers.
+    Handles widget management and keyboard shortcuts.
+    """
     
-    def __init__(self, master: ctk.CTk, manager:Manager):
+    def __init__(self, master: ctk.CTk, manager: Manager):
+        """
+        Initialize the base view controller.
+        
+        Args:
+            master: The root tkinter window
+            manager: The business logic manager
+        """
         self.master = master
         self.manager = manager
         self.widgets = []
+        
+        # Initialize key binding manager
+        self.key_manager = KeyBindingManager(master)
     
-    def clear_widgets(self):
-        """Remove all widgets from the screen"""
+    def clear_widgets(self) -> None:
+        """Remove all widgets from the screen."""
         for widget in self.master.winfo_children():
             widget.destroy()
         self.widgets.clear()
     
-    def show(self):
-        """Display this view (to be overridden)"""
-        raise NotImplementedError
+    def setup_key_bindings(self) -> None:
+        """
+        Setup keyboard shortcuts for this view.
+        Override this method in child classes to define view-specific bindings.
+        
+        Example:
+            def setup_key_bindings(self):
+                self.key_manager.bind_multiple([
+                    (KeyAction.SUBMIT, self.on_submit),
+                    (KeyAction.BACK, self.on_back)
+                ])
+        """
+        pass
+    
+    def cleanup(self) -> None:
+        """
+        Cleanup resources when leaving this view.
+        Automatically unbinds all key bindings.
+        Override to add additional cleanup logic.
+        """
+        self.key_manager.unbind_all()
+    
+    def show(self) -> None:
+        """
+        Display this view.
+        Must be overridden by child classes.
+        """
+        raise NotImplementedError("Subclasses must implement show()")
+    
+    def transition_to(self, show_method) -> None:
+        """
+        Helper method to transition to another view with proper cleanup.
+        
+        Args:
+            show_method: The ViewFactory method to call (e.g., ViewFactory.show_login)
+        
+        Example:
+            self.transition_to(lambda: ViewFactory.show_login(self.master, self.manager))
+        """
+        self.cleanup()
+        show_method()
+
 
 
 class MainMenuController(BaseViewController):
@@ -60,13 +112,14 @@ class MainMenuController(BaseViewController):
 
 
 class LoginController(BaseViewController):
-    """Controller for the login screen"""
+    """Controller for the login screen - REFACTORED VERSION"""
     
     def show(self):
+        """Display the login view."""
         self.clear_widgets()
         self.master.title("Login")
         
-        #Creating the gui
+        # Create the GUI
         form_frame = CenteredForm(self.master)
         
         self.form = FormBuilder(form_frame)
@@ -76,43 +129,49 @@ class LoginController(BaseViewController):
             .add_button("Login", self.on_login, UIConfig.COLOR_PRIMARY, UIConfig.COLOR_TEXT_DARK) \
             .add_button("Back", self.on_back, UIConfig.COLOR_SECONDARY, UIConfig.COLOR_TEXT_PRIMARY)
         
-        # Binding keys
-        self._bind_enter_key()
-        self._bind_back_key()
-
-    def _bind_enter_key(self):
-        """Bind Enter key to submit the form"""
-        self.master.bind('<Return>', lambda e: self.on_login())
-    def _bind_back_key(self):
-        """Bind Control-BackSpace key to go to the previous page"""
-        self.master.bind('<Control-BackSpace>', lambda e: self.on_back())
-
+        # Setup keyboard shortcuts
+        self.setup_key_bindings()
+    
+    def setup_key_bindings(self) -> None:
+        """Setup keyboard shortcuts for login screen."""
+        self.key_manager.bind_multiple([
+            (KeyAction.SUBMIT, self.on_login),
+            (KeyAction.BACK, self.on_back)
+        ])
+    
     def on_login(self):
+        """Handle login submission."""
         values = self.form.get_values()
-        result: AuthResult = self.manager.login(
+        result = self.manager.login(
             values["username"],
             values["password"]
         )
         
         if isinstance(result, AuthSuccess):
             from view_factory import ViewFactory
-            ViewFactory.show_user_menu(self.master, self.manager)
-        else:  # AuthFailure
+            self.transition_to(
+                lambda: ViewFactory.show_user_menu(self.master, self.manager)
+            )
+        else:
             MessageHelper.show_error("Login Failed", result.message)
     
     def on_back(self):
+        """Navigate back to main menu."""
         from view_factory import ViewFactory
-        ViewFactory.show_main_menu(self.master, self.manager)
+        self.transition_to(
+            lambda: ViewFactory.show_main_menu(self.master, self.manager)
+        )
 
 
 class SignupController(BaseViewController):
-    """Controller for the signup screen"""
+    """Controller for the signup screen - REFACTORED VERSION"""
     
     def show(self):
+        """Display the signup view."""
         self.clear_widgets()
         self.master.title("Sign Up")
         
-        #Creating the gui
+        # Create the GUI
         form_frame = CenteredForm(self.master)
         
         self.form = FormBuilder(form_frame)
@@ -123,23 +182,20 @@ class SignupController(BaseViewController):
             .add_button("Sign Up", self.on_signup, UIConfig.COLOR_PRIMARY, UIConfig.COLOR_TEXT_DARK) \
             .add_button("Back", self.on_back, UIConfig.COLOR_SECONDARY, UIConfig.COLOR_TEXT_PRIMARY)
         
-        #Binding keys
-        self._bind_enter_key()
-        self._bind_back_key()
+        # Setup keyboard shortcuts
+        self.setup_key_bindings()
     
-    def _bind_enter_key(self):
-        """Bind Enter key to submit the form"""
-        self.master.bind('<Return>', lambda e: self.on_signup())
-
-    def _bind_back_key(self):
-        """Bind Control-BackSpace key to go to the previous page"""
-        ####NOTE these functions that move from one screen to 
-        # another needs to also remove previous bindings or maybe add it before Binding keys to remove all prior bindings
-        self.master.bind('<Control-BackSpace>', lambda e: self.on_back())
+    def setup_key_bindings(self) -> None:
+        """Setup keyboard shortcuts for signup screen."""
+        self.key_manager.bind_multiple([
+            (KeyAction.SUBMIT, self.on_signup),
+            (KeyAction.BACK, self.on_back)
+        ])
     
     def on_signup(self):
+        """Handle signup submission."""
         values = self.form.get_values()
-        result: AuthResult = self.manager.signup(
+        result = self.manager.signup(
             values["username"],
             values["password"],
             values["confirm_password"]
@@ -147,13 +203,19 @@ class SignupController(BaseViewController):
         
         if isinstance(result, AuthSuccess):
             from view_factory import ViewFactory
-            ViewFactory.show_user_menu(self.master, self.manager)
+            self.transition_to(
+                lambda: ViewFactory.show_user_menu(self.master, self.manager)
+            )
         else:
             MessageHelper.show_error("Signup Failed", result.message)
     
     def on_back(self):
+        """Navigate back to main menu."""
         from view_factory import ViewFactory
-        ViewFactory.show_main_menu(self.master, self.manager)
+        self.transition_to(
+            lambda: ViewFactory.show_main_menu(self.master, self.manager)
+        )
+
 
 
 class UserMenuController(BaseViewController):
@@ -197,13 +259,14 @@ class UserMenuController(BaseViewController):
 
 
 class TransactionController(BaseViewController):
-    """Controller for deposit/withdraw screens"""
+    """Controller for deposit/withdraw screens - REFACTORED VERSION"""
     
     def __init__(self, master, manager, transaction_type: str):
         super().__init__(master, manager)
         self.transaction_type = transaction_type
     
     def show(self):
+        """Display the transaction view."""
         self.clear_widgets()
         self.master.title(f"{self.transaction_type} Menu")
         
@@ -249,21 +312,20 @@ class TransactionController(BaseViewController):
             UIConfig.COLOR_TEXT_DARK
         ) \
         .add_button("Back", self.on_back, UIConfig.COLOR_SECONDARY, UIConfig.COLOR_TEXT_PRIMARY)
+        
+        # Setup keyboard shortcuts
+        self.setup_key_bindings()
     
-        #Binding keys
-        self._bind_enter_key()
-        self._bind_back_key()
-    
-    def _bind_enter_key(self):
-        """Bind Enter key to submit the form"""
-        # Bind to entry fields only
-        self.master.bind('<Return>', lambda e: self.on_submit())
-
-    def _bind_back_key(self):
-        """Bind Control-BackSpace key to go to the previous page"""
-        self.master.bind('<Control-BackSpace>', lambda e: self.on_back())
+    def setup_key_bindings(self) -> None:
+        """Setup keyboard shortcuts for transaction screen."""
+        self.key_manager.bind_multiple([
+            (KeyAction.SUBMIT, self.on_submit),
+            (KeyAction.BACK, self.on_back),
+            (KeyAction.CANCEL, self.on_back)  # ESC also goes back
+        ])
     
     def on_submit(self):
+        """Handle transaction submission."""
         values = self.form.get_values()
         
         # Get date with time
@@ -274,7 +336,7 @@ class TransactionController(BaseViewController):
             date_str = None
         
         if self.transaction_type == "Deposit":
-            result: TransactionResult = self.manager.process_deposit(
+            result = self.manager.process_deposit(
                 vault=values["vault"],
                 amount=float(values["amount"]),
                 category=values["category"],
@@ -282,7 +344,7 @@ class TransactionController(BaseViewController):
                 date=date_str
             )
         else:  # Withdraw
-            result: TransactionResult = self.manager.process_withdraw(
+            result = self.manager.process_withdraw(
                 vault=values["vault"],
                 amount=float(values["amount"]),
                 category=values["category"],
@@ -304,8 +366,11 @@ class TransactionController(BaseViewController):
             )
     
     def on_back(self):
+        """Navigate back to user menu."""
         from view_factory import ViewFactory
-        ViewFactory.show_user_menu(self.master, self.manager)
+        self.transition_to(
+            lambda: ViewFactory.show_user_menu(self.master, self.manager)
+        )
 
 
 class TransferController(BaseViewController):
