@@ -1,13 +1,13 @@
 # view_controllers.py
 """View controllers for different screens"""
-from manager import Manager
+from core.manager import Manager
 import customtkinter as ctk
 from typing import Callable
 from datetime import datetime
-from config import UIConfig
-from ui_components import *
-from result_types import *
-from key_binding_manager import KeyBindingManager, KeyAction
+from config.settings import UIConfig
+from ui.components import *
+from core.result_types import *
+from utils.key_binding import KeyBindingManager, KeyAction
 
 
 class BaseViewController:
@@ -103,11 +103,11 @@ class MainMenuController(BaseViewController):
         signup_btn.pack(pady=10)
     
     def on_login_clicked(self):
-        from view_factory import ViewFactory
+        from ui.factory import ViewFactory
         ViewFactory.show_login(self.master, self.manager)
     
     def on_signup_clicked(self):
-        from view_factory import ViewFactory
+        from ui.factory import ViewFactory
         ViewFactory.show_signup(self.master, self.manager)
 
 
@@ -148,7 +148,7 @@ class LoginController(BaseViewController):
         )
         
         if isinstance(result, AuthSuccess):
-            from view_factory import ViewFactory
+            from ui.factory import ViewFactory
             self.transition_to(
                 lambda: ViewFactory.show_user_menu(self.master, self.manager)
             )
@@ -157,7 +157,7 @@ class LoginController(BaseViewController):
     
     def on_back(self):
         """Navigate back to main menu."""
-        from view_factory import ViewFactory
+        from ui.factory import ViewFactory
         self.transition_to(
             lambda: ViewFactory.show_main_menu(self.master, self.manager)
         )
@@ -202,7 +202,7 @@ class SignupController(BaseViewController):
         )
         
         if isinstance(result, AuthSuccess):
-            from view_factory import ViewFactory
+            from ui.factory import ViewFactory
             self.transition_to(
                 lambda: ViewFactory.show_user_menu(self.master, self.manager)
             )
@@ -211,7 +211,7 @@ class SignupController(BaseViewController):
     
     def on_back(self):
         """Navigate back to main menu."""
-        from view_factory import ViewFactory
+        from ui.factory import ViewFactory
         self.transition_to(
             lambda: ViewFactory.show_main_menu(self.master, self.manager)
         )
@@ -238,23 +238,23 @@ class UserMenuController(BaseViewController):
             btn.pack(pady=2)
     
     def on_deposit(self):
-        from view_factory import ViewFactory
+        from ui.factory import ViewFactory
         ViewFactory.show_transaction(self.master, self.manager, "Deposit")
     
     def on_withdraw(self):
-        from view_factory import ViewFactory
+        from ui.factory import ViewFactory
         ViewFactory.show_transaction(self.master, self.manager, "Withdraw")
     
     def on_transfer(self):
-        from view_factory import ViewFactory
+        from ui.factory import ViewFactory
         ViewFactory.show_transfer(self.master, self.manager)
     
     def on_summary(self):
-        from view_factory import ViewFactory
+        from ui.factory import ViewFactory
         ViewFactory.show_summary(self.master, self.manager)
     
     def on_account(self):
-        from view_factory import ViewFactory
+        from ui.factory import ViewFactory
         ViewFactory.show_account(self.master, self.manager)
 
 
@@ -367,7 +367,7 @@ class TransactionController(BaseViewController):
     
     def on_back(self):
         """Navigate back to user menu."""
-        from view_factory import ViewFactory
+        from ui.factory import ViewFactory
         self.transition_to(
             lambda: ViewFactory.show_user_menu(self.master, self.manager)
         )
@@ -462,7 +462,7 @@ class TransferController(BaseViewController):
             MessageHelper.show_error("Transfer Failed", result.message)
     
     def on_back(self):
-        from view_factory import ViewFactory
+        from ui.factory import ViewFactory
         ViewFactory.show_user_menu(self.master, self.manager)
 
 
@@ -522,7 +522,7 @@ class SummaryController(BaseViewController):
         back_button.pack(pady=20)
     
     def on_back(self):
-        from view_factory import ViewFactory
+        from ui.factory import ViewFactory
         ViewFactory.show_user_menu(self.master, self.manager)
 
 
@@ -593,10 +593,10 @@ class AccountController(BaseViewController):
             MessageHelper.show_error("Export Failed", str(e))
     
     def on_logout(self):
-        from view_factory import ViewFactory
+        from ui.factory import ViewFactory
         self.manager.logout()
         ViewFactory.show_main_menu(self.master, self.manager)
     
     def on_back(self):
-        from view_factory import ViewFactory
+        from ui.factory import ViewFactory
         ViewFactory.show_user_menu(self.master, self.manager)

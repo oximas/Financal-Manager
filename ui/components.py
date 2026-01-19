@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from typing import Any,Callable, List, Optional, Dict,Protocol, runtime_checkable
-from config import UIConfig
+from config.settings import UIConfig
 from CTkDatePicker import CTkDatePicker
 
 class FormField:

@@ -37,7 +37,7 @@ class UIConfig:
     FONT_BUTTON = ("Helvetica", 14, "bold")
 
 class AppConfig:
-    DB_NAME = "personal_financial_manager.db"
+    DB_PATH = "db/personal_financial_manager.db"
     APPEARANCE_MODE = "System"
     COLOR_THEME = "blue"
     DEFAULT_VAULT_NAME = "Main"

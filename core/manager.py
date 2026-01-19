@@ -3,8 +3,8 @@
 from datetime import datetime
 from typing import Optional, Dict, List
 from enum import Enum
-from Database import Database as DB
-from result_types import *
+from data.database import Database as DB
+from core.result_types import *
 
 
 class TransactionType(Enum):

@@ -1,4 +1,4 @@
-from gui import FinanceManagerGUI
+from ui.app import FinanceManagerGUI
 
 """Entry point for the Finance Manager application"""
 

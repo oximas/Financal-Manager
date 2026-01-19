@@ -1,26 +1,129 @@
 # Personal Financial Manager
 
-This program tracks all your money interactions.
-
-For example, if you buy a sandwich for 10 bucks, you withdraw 10 bucks from your account and record that it was for the sandwich.
+A desktop application for tracking personal finances with support for multiple vaults, transactions, and detailed reporting.
 
 ## Features
-- **Vaults**: Each user has vaults, which are used to organize money into categories like "Food," "Fun," "Savings," etc.
-  
-- **Main Operations**: The program supports 4 main operations:
-  1. **Withdraw**: Used to take money from a vault.
-  2. **Deposit**: Used to add money to a vault.
-  3. **Transfer**: Used to move money between different vaults or to send money to another user's main vault.
-  4. **Loan**: Used to transfer money to/from me or to/from another user (or a non-user, like a friend who doesn’t use the app) and record that I owe them money or they owe me money.(NOT IMPLEMENTED YET)
 
-### Detailed Transaction Tracking
-- In the **Withdraw** and **Deposit** operations, a "reason" or "category" must be specified to track where the money went.
+- **User Management**: Secure login and signup system
+- **Vaults**: Organize money into categories like "Food," "Savings," "Fun," etc.
+- **Transaction Types**:
+  1. **Deposit**: Add money to a vault
+  2. **Withdraw**: Remove money from a vault with category tracking
+  3. **Transfer**: Move money between vaults or send to other users
+  4. **Loan**: *(Coming soon)* Track money owed to/from others
 
-### How to Use
-To run the program, execute the `main.py` file using any Python compiler.
+- **Detailed Tracking**: Every transaction includes category, description, date, and optional quantity/unit
+- **Export**: Export transaction history to Excel
+- **Summary Dashboard**: View total balance and vault breakdowns
 
-### Possible uses:
-- its called personal financial planner but could be used for businesses as well
-- Predict future financial like how much you will spend in the next week or month, or what you will spend your money on.
-- Track past transactions and become more aware or where your money goes.
-- connect to a storage database to track current supplies present in your business or home.
+## Project Structure
+```
+finance_manager/
+├── config/          # Configuration settings
+├── core/            # Business logic layer
+├── data/            # Database access layer
+├── ui/              # User interface components
+├── utils/           # Utility modules
+├── tests/           # Test suite
+└── main.py          # Application entry point
+```
+
+## Installation
+
+### Prerequisites
+- Python 3.8 or higher
+
+### Setup
+
+1. **Clone the repository**
+```bash
+   git clone <your-repo-url>
+   cd finance_manager
+```
+
+2. **Create virtual environment**
+```bash
+   python -m venv venv
+```
+
+3. **Activate virtual environment**
+   - Windows:
+```bash
+     venv\Scripts\activate
+```
+   - macOS/Linux:
+```bash
+     source venv/bin/activate
+```
+
+4. **Install dependencies**
+```bash
+   pip install -r requirements.txt
+```
+
+## Usage
+
+Run the application:
+```bash
+python main.py
+```
+
+### First Time Setup
+1. Click "Sign Up" to create a new account
+2. Enter a username and password
+3. A default "Main" vault will be created automatically
+
+### Keyboard Shortcuts
+- **Enter**: Submit forms
+- **Ctrl+Backspace**: Go back
+- **Escape**: Cancel/Go back
+
+## Development
+
+### Running Tests
+```bash
+pytest tests/
+```
+
+### Project Architecture
+
+The application follows a layered architecture:
+
+- **Data Layer** (`data/`): SQLite database operations
+- **Business Logic** (`core/`): Transaction processing, validation
+- **Presentation Layer** (`ui/`): GUI components and controllers
+- **Configuration** (`config/`): Application settings
+- **Utilities** (`utils/`): Reusable helpers (key bindings, etc.)
+
+### Adding New Features
+
+1. Add business logic to `core/manager.py`
+2. Create UI controller in `ui/controllers.py`
+3. Register view in `ui/factory.py`
+4. Add tests in `tests/`
+
+## Database Schema
+
+- **users**: User accounts
+- **vaults**: Money containers per user
+- **transactions**: All financial movements
+- **categories**: Transaction categories
+- **units**: Measurement units for items
+
+## Future Enhancements
+
+- [ ] Loan tracking system
+- [ ] Budget planning and forecasts
+- [ ] Data visualization (charts/graphs)
+- [ ] Recurring transactions
+- [ ] Mobile companion app
+- [ ] Cloud sync
+- [ ] Cloud sync
+
+## License
+
+*(Add your license here)*
+
+## Contributing
+
+*(Add contribution guidelines if needed)*

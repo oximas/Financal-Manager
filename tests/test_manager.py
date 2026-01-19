@@ -1,7 +1,7 @@
 import pytest #type:ignore
 from unittest.mock import Mock
-from manager import Manager, TransactionType
-from result_types import (
+from core.manager import Manager, TransactionType
+from core.result_types import (
     AuthResult, AuthSuccess, AuthFailure, AuthError,
     TransactionError, TransactionFailure, TransactionSuccess
 )

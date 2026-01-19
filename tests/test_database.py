@@ -8,7 +8,7 @@ import sqlite3
 from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime
 import pandas as pd
-from Database import Database
+from data.database import Database
 
 #Setting the schema
 TABLE_NAMES = {

@@ -2,10 +2,10 @@
 """Main GUI application class"""
 import customtkinter as ctk
 from customtkinter import set_appearance_mode, set_default_color_theme
-from config import UIConfig, AppConfig
-from manager import Manager
-from Database import Database
-from view_factory import ViewFactory
+from config.settings import UIConfig, AppConfig
+from core.manager import Manager
+from data.database import Database
+from ui.factory import ViewFactory
 
 
 class FinanceManagerGUI:
@@ -28,7 +28,7 @@ class FinanceManagerGUI:
     
     def _initialize_backend(self):
         """Initialize manager"""
-        self.manager = Manager(AppConfig.DB_NAME)
+        self.manager = Manager(AppConfig.DB_PATH)
     
     def _initialize_window(self):
         """Initialize the main window"""

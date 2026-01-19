@@ -1,0 +1,36 @@
+# Database files
+*.db
+*.backup
+personal_financial_manager_backup.db
+
+# Python bytecode
+*.pyc
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venvPython12/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Debugging code
+try.py
+
+# Temp files
+*.json
+*.txt
+!requirements.txt
