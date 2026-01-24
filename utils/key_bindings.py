@@ -1,4 +1,4 @@
-# key_binding_manager.py
+# utils/key_bindings.py
 """
 Key binding management for the Finance Manager application.
 Handles keyboard shortcuts with automatic cleanup and centralized configuration.
@@ -53,7 +53,7 @@ class KeyBindingManager:
     
     # Default key mappings - can be customized or loaded from config
     DEFAULT_BINDINGS = {
-        KeyAction.SUBMIT: '<Return>',
+        KeyAction.SUBMIT: '<Shift-Return>',
         KeyAction.BACK: '<Control-BackSpace>',
         KeyAction.CANCEL: '<Escape>',
         KeyAction.REFRESH: '<F5>',

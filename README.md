@@ -118,7 +118,6 @@ The application follows a layered architecture:
 - [ ] Recurring transactions
 - [ ] Mobile companion app
 - [ ] Cloud sync
-- [ ] Cloud sync
 
 ## License
 

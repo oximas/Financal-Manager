@@ -443,9 +443,9 @@ class TestExportMethods:
         """Test exporting database to Excel"""
         manager._current_username = "John"
         
-        manager.export_current_user_db_to_excel()
+        manager.export_current_user_db_to_excel("fake_filepath")
         
-        manager.db.export_to_excel.assert_called_once_with("John")
+        manager.db.export_to_excel.assert_called_once_with("John","fake_filepath")
 
 
 class TestTransactionType:

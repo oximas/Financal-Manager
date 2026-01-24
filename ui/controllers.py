@@ -1,13 +1,12 @@
-# view_controllers.py
 """View controllers for different screens"""
 from core.manager import Manager
 import customtkinter as ctk
-from typing import Callable
+from typing import Type
 from datetime import datetime
 from config.settings import UIConfig
 from ui.components import *
 from core.result_types import *
-from utils.key_binding import KeyBindingManager, KeyAction
+from utils.key_bindings import KeyBindingManager, KeyAction
 
 
 class BaseViewController:
@@ -59,6 +58,18 @@ class BaseViewController:
         """
         self.key_manager.unbind_all()
     
+    def _resize_window(self):
+        """Resize window to fit content"""
+        self.master.update_idletasks()
+        width = self.master.winfo_reqwidth()
+        height = self.master.winfo_reqheight()
+        margin = UIConfig.WINDOW_MARGIN
+
+        new_width = max(width + margin, UIConfig.DEFAULT_WIDTH)
+        new_height = max(height + margin, UIConfig.DEFAULT_HEIGHT)
+        
+        self.master.geometry(f"{new_width}x{new_height}")
+    
     def show(self) -> None:
         """
         Display this view.
@@ -66,19 +77,19 @@ class BaseViewController:
         """
         raise NotImplementedError("Subclasses must implement show()")
     
-    def transition_to(self, show_method) -> None:
+    def transition_to(self, view_controller:Type["BaseViewController"]) -> None:
         """
         Helper method to transition to another view with proper cleanup.
         
         Args:
-            show_method: The ViewFactory method to call (e.g., ViewFactory.show_login)
+            view_controller: The view controller class to transition to
         
         Example:
-            self.transition_to(lambda: ViewFactory.show_login(self.master, self.manager))
+            self.transition_to(LoginController)
         """
         self.cleanup()
-        show_method()
-
+        view_controller(self.master, self.manager).show()
+        self._resize_window()
 
 
 class MainMenuController(BaseViewController):
@@ -88,12 +99,17 @@ class MainMenuController(BaseViewController):
         self.clear_widgets()
         self.master.title("Finance Manager - Welcome")
         
+        # Store buttons for navigation
+        self.buttons = []
+        self.current_button_index = 0
+        
         login_btn = MenuButton(
             self.master,
             "Login",
             self.on_login_clicked
         )
         login_btn.pack(pady=10)
+        self.buttons.append(login_btn)
         
         signup_btn = MenuButton(
             self.master,
@@ -101,18 +117,71 @@ class MainMenuController(BaseViewController):
             self.on_signup_clicked
         )
         signup_btn.pack(pady=10)
+        self.buttons.append(signup_btn)
+        
+        # Highlight first button
+        self._highlight_button(0)
+        
+        # Setup navigation
+        self.setup_key_bindings()
+    
+    def setup_key_bindings(self):
+        """Setup keyboard shortcuts for main menu"""
+        # Up/Down navigation
+        self.master.bind('<Up>', lambda e: self._navigate_buttons(-1))
+        self.master.bind('<Down>', lambda e: self._navigate_buttons(1))
+        self.master.bind('<Return>', lambda e: self._activate_current_button())
+        
+        # Ctrl+Backspace does nothing on main menu (can't go back)
+        self.key_manager.bind(KeyAction.BACK, lambda: None)
+    
+    def _navigate_buttons(self, direction):
+        """Navigate through buttons with arrow keys"""
+        # Remove highlight from current
+        self._unhighlight_button(self.current_button_index)
+        
+        # Move index (with looping)
+        self.current_button_index = (self.current_button_index + direction) % len(self.buttons)
+        
+        # Highlight new button
+        self._highlight_button(self.current_button_index)
+    
+    def _highlight_button(self, index):
+        """Highlight a button"""
+        self.buttons[index].configure(
+            fg_color=UIConfig.COLOR_SUCCESS,
+            border_width=2,
+            border_color=UIConfig.COLOR_TEXT_PRIMARY
+        )
+    
+    def _unhighlight_button(self, index):
+        """Remove highlight from button"""
+        button = self.buttons[index]
+        button.configure(
+            fg_color=button.original_fg_color,
+            border_width=0
+        )
+    
+    def _activate_current_button(self):
+        """Activate the currently selected button"""
+        self.buttons[self.current_button_index].invoke()
     
     def on_login_clicked(self):
-        from ui.factory import ViewFactory
-        ViewFactory.show_login(self.master, self.manager)
+        self.transition_to(LoginController)
     
     def on_signup_clicked(self):
-        from ui.factory import ViewFactory
-        ViewFactory.show_signup(self.master, self.manager)
+        self.transition_to(SignupController)
+
+    def cleanup(self):
+        """Cleanup arrow key bindings"""
+        self.master.unbind('<Up>')
+        self.master.unbind('<Down>')
+        self.master.unbind('<Return>')
+        super().cleanup()
 
 
 class LoginController(BaseViewController):
-    """Controller for the login screen - REFACTORED VERSION"""
+    """Controller for the login screen"""
     
     def show(self):
         """Display the login view."""
@@ -126,7 +195,7 @@ class LoginController(BaseViewController):
         self.form.add_title("Login") \
             .add_field("username", "Username:", placeholder="Enter username") \
             .add_field("password", "Password:", placeholder="Enter password", show="*") \
-            .add_button("Login", self.on_login, UIConfig.COLOR_PRIMARY, UIConfig.COLOR_TEXT_DARK) \
+            .add_button("Login", self.on_submit, UIConfig.COLOR_PRIMARY, UIConfig.COLOR_TEXT_DARK) \
             .add_button("Back", self.on_back, UIConfig.COLOR_SECONDARY, UIConfig.COLOR_TEXT_PRIMARY)
         
         # Setup keyboard shortcuts
@@ -135,11 +204,11 @@ class LoginController(BaseViewController):
     def setup_key_bindings(self) -> None:
         """Setup keyboard shortcuts for login screen."""
         self.key_manager.bind_multiple([
-            (KeyAction.SUBMIT, self.on_login),
+            (KeyAction.SUBMIT, self.on_submit),  # Shift+Enter
             (KeyAction.BACK, self.on_back)
         ])
     
-    def on_login(self):
+    def on_submit(self):
         """Handle login submission."""
         values = self.form.get_values()
         result = self.manager.login(
@@ -148,23 +217,17 @@ class LoginController(BaseViewController):
         )
         
         if isinstance(result, AuthSuccess):
-            from ui.factory import ViewFactory
-            self.transition_to(
-                lambda: ViewFactory.show_user_menu(self.master, self.manager)
-            )
+            self.transition_to(UserMenuController)
         else:
             MessageHelper.show_error("Login Failed", result.message)
     
     def on_back(self):
         """Navigate back to main menu."""
-        from ui.factory import ViewFactory
-        self.transition_to(
-            lambda: ViewFactory.show_main_menu(self.master, self.manager)
-        )
+        self.transition_to(MainMenuController)
 
 
 class SignupController(BaseViewController):
-    """Controller for the signup screen - REFACTORED VERSION"""
+    """Controller for the signup screen"""
     
     def show(self):
         """Display the signup view."""
@@ -179,7 +242,7 @@ class SignupController(BaseViewController):
             .add_field("username", "Username:", placeholder="Enter username") \
             .add_field("password", "Password:", placeholder="Enter password", show="*") \
             .add_field("confirm_password", "Confirm Password:", placeholder="Confirm password", show="*") \
-            .add_button("Sign Up", self.on_signup, UIConfig.COLOR_PRIMARY, UIConfig.COLOR_TEXT_DARK) \
+            .add_button("Sign Up", self.on_submit, UIConfig.COLOR_PRIMARY, UIConfig.COLOR_TEXT_DARK) \
             .add_button("Back", self.on_back, UIConfig.COLOR_SECONDARY, UIConfig.COLOR_TEXT_PRIMARY)
         
         # Setup keyboard shortcuts
@@ -188,11 +251,11 @@ class SignupController(BaseViewController):
     def setup_key_bindings(self) -> None:
         """Setup keyboard shortcuts for signup screen."""
         self.key_manager.bind_multiple([
-            (KeyAction.SUBMIT, self.on_signup),
+            (KeyAction.SUBMIT, self.on_submit),
             (KeyAction.BACK, self.on_back)
         ])
     
-    def on_signup(self):
+    def on_submit(self):
         """Handle signup submission."""
         values = self.form.get_values()
         result = self.manager.signup(
@@ -202,20 +265,13 @@ class SignupController(BaseViewController):
         )
         
         if isinstance(result, AuthSuccess):
-            from ui.factory import ViewFactory
-            self.transition_to(
-                lambda: ViewFactory.show_user_menu(self.master, self.manager)
-            )
+            self.transition_to(UserMenuController)
         else:
             MessageHelper.show_error("Signup Failed", result.message)
     
     def on_back(self):
         """Navigate back to main menu."""
-        from ui.factory import ViewFactory
-        self.transition_to(
-            lambda: ViewFactory.show_main_menu(self.master, self.manager)
-        )
-
+        self.transition_to(MainMenuController)
 
 
 class UserMenuController(BaseViewController):
@@ -225,7 +281,11 @@ class UserMenuController(BaseViewController):
         self.clear_widgets()
         self.master.title(f"Finance Manager - {self.manager.current_username}")
         
-        buttons = [
+        # Store buttons for navigation
+        self.buttons = []
+        self.current_button_index = 0
+        
+        button_configs = [
             ("Deposit", self.on_deposit),
             ("Withdraw", self.on_withdraw),
             ("Transfer", self.on_transfer),
@@ -233,47 +293,81 @@ class UserMenuController(BaseViewController):
             ("Account", self.on_account)
         ]
         
-        for text, command in buttons:
+        for text, command in button_configs:
             btn = MenuButton(self.master, text, command)
             btn.pack(pady=2)
+            self.buttons.append(btn)
+        
+        # Highlight first button
+        self._highlight_button(0)
+        
+        # Setup navigation
+        self.setup_key_bindings()
+    
+    def setup_key_bindings(self):
+        """Setup keyboard shortcuts for user menu"""
+        # Up/Down navigation
+        self.master.bind('<Up>', lambda e: self._navigate_buttons(-1))
+        self.master.bind('<Down>', lambda e: self._navigate_buttons(1))
+        self.master.bind('<Return>', lambda e: self._activate_current_button())
+        
+        # Ctrl+Backspace does nothing (can't go back after login)
+        self.key_manager.bind(KeyAction.BACK, lambda: None)
+    
+    def _navigate_buttons(self, direction):
+        """Navigate through buttons with arrow keys"""
+        self._unhighlight_button(self.current_button_index)
+        self.current_button_index = (self.current_button_index + direction) % len(self.buttons)
+        self._highlight_button(self.current_button_index)
+    
+    def _highlight_button(self, index):
+        """Highlight a button"""
+        self.buttons[index].configure(
+            fg_color=UIConfig.COLOR_SUCCESS,
+            border_width=2,
+            border_color=UIConfig.COLOR_TEXT_PRIMARY
+        )
+    
+    def _unhighlight_button(self, index):
+        """Remove highlight from button"""
+        button = self.buttons[index]
+        button.configure(
+            fg_color=button.original_fg_color,
+            border_width=0
+        )
+    
+    def _activate_current_button(self):
+        """Activate the currently selected button"""
+        self.buttons[self.current_button_index].invoke()
     
     def on_deposit(self):
-        from ui.factory import ViewFactory
-        ViewFactory.show_transaction(self.master, self.manager, "Deposit")
+        self.transition_to(DepositController)
     
     def on_withdraw(self):
-        from ui.factory import ViewFactory
-        ViewFactory.show_transaction(self.master, self.manager, "Withdraw")
+        self.transition_to(WithdrawController)
     
     def on_transfer(self):
-        from ui.factory import ViewFactory
-        ViewFactory.show_transfer(self.master, self.manager)
+        self.transition_to(TransferController)
     
     def on_summary(self):
-        from ui.factory import ViewFactory
-        ViewFactory.show_summary(self.master, self.manager)
+        self.transition_to(SummaryController)
     
     def on_account(self):
-        from ui.factory import ViewFactory
-        ViewFactory.show_account(self.master, self.manager)
+        self.transition_to(AccountController)
 
 
-class TransactionController(BaseViewController):
-    """Controller for deposit/withdraw screens - REFACTORED VERSION"""
-    
-    def __init__(self, master, manager, transaction_type: str):
-        super().__init__(master, manager)
-        self.transaction_type = transaction_type
+class DepositController(BaseViewController):
+    """Controller for deposit screen"""
     
     def show(self):
-        """Display the transaction view."""
+        """Display the deposit view."""
         self.clear_widgets()
-        self.master.title(f"{self.transaction_type} Menu")
+        self.master.title("Deposit Menu")
         
         form_frame = CenteredForm(self.master)
         
         self.form = FormBuilder(form_frame)
-        self.form.add_title(f"{self.transaction_type} Menu") \
+        self.form.add_title("Deposit Menu") \
             .add_field("amount", "Money Amount:", placeholder="Enter amount") \
             .add_field(
                 "category",
@@ -282,31 +376,18 @@ class TransactionController(BaseViewController):
                 values=self.manager.get_category_names(),
                 default_value=self.manager.get_category_names()[0] if self.manager.get_category_names() else "None"
             ) \
-            .add_field("description", "Description:", placeholder="Enter description")
-        
-        # Add withdraw-specific fields
-        if self.transaction_type == "Withdraw":
-            self.form.add_field("quantity", "Quantity:", placeholder="Enter quantity") \
-                .add_field(
-                    "unit",
-                    "Unit:",
-                    field_type="combobox",
-                    values=self.manager.get_unit_names(),
-                    default_value=self.manager.get_unit_names()[0] if self.manager.get_unit_names() else "None"
-                )
-        
-        # Add vault selection
-        self.form.add_field(
-            "vault",
-            "Vault:",
-            field_type="combobox",
-            values=self.manager.get_current_user_vault_names(),
-            default_value="Main"
-        ) \
-        .add_field("date", "Date:", field_type="date")
+            .add_field("description", "Description:", placeholder="Enter description") \
+            .add_field(
+                "vault",
+                "Vault:",
+                field_type="combobox",
+                values=self.manager.get_current_user_vault_names(),
+                default_value="Main"
+            ) \
+            .add_field("date", "Date:", field_type="date")
         
         self.form.add_button(
-            self.transaction_type,
+            "Deposit",
             self.on_submit,
             UIConfig.COLOR_PRIMARY,
             UIConfig.COLOR_TEXT_DARK
@@ -317,15 +398,15 @@ class TransactionController(BaseViewController):
         self.setup_key_bindings()
     
     def setup_key_bindings(self) -> None:
-        """Setup keyboard shortcuts for transaction screen."""
+        """Setup keyboard shortcuts for deposit screen."""
         self.key_manager.bind_multiple([
             (KeyAction.SUBMIT, self.on_submit),
             (KeyAction.BACK, self.on_back),
-            (KeyAction.CANCEL, self.on_back)  # ESC also goes back
+            (KeyAction.CANCEL, self.on_back)
         ])
     
     def on_submit(self):
-        """Handle transaction submission."""
+        """Handle deposit submission."""
         values = self.form.get_values()
         
         # Get date with time
@@ -335,29 +416,18 @@ class TransactionController(BaseViewController):
         else:
             date_str = None
         
-        if self.transaction_type == "Deposit":
-            result = self.manager.process_deposit(
-                vault=values["vault"],
-                amount=float(values["amount"]),
-                category=values["category"],
-                description=values["description"],
-                date=date_str
-            )
-        else:  # Withdraw
-            result = self.manager.process_withdraw(
-                vault=values["vault"],
-                amount=float(values["amount"]),
-                category=values["category"],
-                description=values["description"],
-                quantity=float(values.get("quantity")), #type:ignore
-                unit=values.get("unit"),
-                date=date_str
-            )
+        result = self.manager.process_deposit(
+            vault=values["vault"],
+            amount=float(values["amount"]),
+            category=values["category"],
+            description=values["description"],
+            date=date_str
+        )
         
         if isinstance(result, TransactionSuccess):
             MessageHelper.show_info(
                 "Success",
-                f"{self.transaction_type} of {result.amount:.2f} EGP was successful"
+                f"Deposit of {result.amount:.2f} EGP was successful"
             )
         else:
             MessageHelper.show_error(
@@ -367,10 +437,101 @@ class TransactionController(BaseViewController):
     
     def on_back(self):
         """Navigate back to user menu."""
-        from ui.factory import ViewFactory
-        self.transition_to(
-            lambda: ViewFactory.show_user_menu(self.master, self.manager)
+        self.transition_to(UserMenuController)
+
+
+class WithdrawController(BaseViewController):
+    """Controller for withdraw screen"""
+    
+    def show(self):
+        """Display the withdraw view."""
+        self.clear_widgets()
+        self.master.title("Withdraw Menu")
+        
+        form_frame = CenteredForm(self.master)
+        
+        self.form = FormBuilder(form_frame)
+        self.form.add_title("Withdraw Menu") \
+            .add_field("amount", "Money Amount:", placeholder="Enter amount") \
+            .add_field(
+                "category",
+                "Category:",
+                field_type="combobox",
+                values=self.manager.get_category_names(),
+                default_value=self.manager.get_category_names()[0] if self.manager.get_category_names() else "None"
+            ) \
+            .add_field("description", "Description:", placeholder="Enter description") \
+            .add_field("quantity", "Quantity:", placeholder="Enter quantity") \
+            .add_field(
+                "unit",
+                "Unit:",
+                field_type="combobox",
+                values=self.manager.get_unit_names(),
+                default_value=self.manager.get_unit_names()[0] if self.manager.get_unit_names() else "None"
+            ) \
+            .add_field(
+                "vault",
+                "Vault:",
+                field_type="combobox",
+                values=self.manager.get_current_user_vault_names(),
+                default_value="Main"
+            ) \
+            .add_field("date", "Date:", field_type="date")
+        
+        self.form.add_button(
+            "Withdraw",
+            self.on_submit,
+            UIConfig.COLOR_PRIMARY,
+            UIConfig.COLOR_TEXT_DARK
+        ) \
+        .add_button("Back", self.on_back, UIConfig.COLOR_SECONDARY, UIConfig.COLOR_TEXT_PRIMARY)
+        
+        # Setup keyboard shortcuts
+        self.setup_key_bindings()
+    
+    def setup_key_bindings(self) -> None:
+        """Setup keyboard shortcuts for withdraw screen."""
+        self.key_manager.bind_multiple([
+            (KeyAction.SUBMIT, self.on_submit),
+            (KeyAction.BACK, self.on_back),
+            (KeyAction.CANCEL, self.on_back)
+        ])
+    
+    def on_submit(self):
+        """Handle withdraw submission."""
+        values = self.form.get_values()
+        
+        # Get date with time
+        date_str = values.get("date")
+        if date_str:
+            date_str = date_str + " " + datetime.now().strftime("%H:%M:%S")
+        else:
+            date_str = None
+        
+        result = self.manager.process_withdraw(
+            vault=values["vault"],
+            amount=float(values["amount"]),
+            category=values["category"],
+            description=values["description"],
+            quantity=float(values.get("quantity")),  # type:ignore
+            unit=values.get("unit"),
+            date=date_str
         )
+        
+        if isinstance(result, TransactionSuccess):
+            MessageHelper.show_info(
+                "Success",
+                f"Withdraw of {result.amount:.2f} EGP was successful"
+            )
+        else:
+            MessageHelper.show_error(
+                "Transaction Failed",
+                result.message
+            )
+    
+    def on_back(self):
+        """Navigate back to user menu."""
+        self.transition_to(UserMenuController)
 
 
 class TransferController(BaseViewController):
@@ -415,20 +576,16 @@ class TransferController(BaseViewController):
         # Setup dynamic vault update when user changes
         to_user_widget = self.form.fields["to_user"].widget
         to_user_widget.configure(command=self.on_user_changed)
-
-
-        #Binding keys
-        self._bind_enter_key()
-        self._bind_back_key()
-    
-    def _bind_enter_key(self):
-        """Bind Enter key to submit the form"""
-        # Bind to entry fields only (not comboboxes)
-        self.form.parent.winfo_toplevel().bind('<Return>', lambda e: self.on_submit())
         
-    def _bind_back_key(self):
-        """Bind Control-BackSpace key to go to the previous page"""
-        self.master.bind('<Control-BackSpace>', lambda e: self.on_back())
+        # Setup keyboard shortcuts
+        self.setup_key_bindings()
+    
+    def setup_key_bindings(self) -> None:
+        """Setup keyboard shortcuts for transfer screen."""
+        self.key_manager.bind_multiple([
+            (KeyAction.SUBMIT, self.on_submit),  # Shift+Enter
+            (KeyAction.BACK, self.on_back)
+        ])
     
     def on_user_changed(self, selected_user: str):
         """Update the to_vault options when user selection changes"""
@@ -462,8 +619,7 @@ class TransferController(BaseViewController):
             MessageHelper.show_error("Transfer Failed", result.message)
     
     def on_back(self):
-        from ui.factory import ViewFactory
-        ViewFactory.show_user_menu(self.master, self.manager)
+        self.transition_to(UserMenuController)
 
 
 class SummaryController(BaseViewController):
@@ -520,10 +676,16 @@ class SummaryController(BaseViewController):
             button_type="primary"
         )
         back_button.pack(pady=20)
+        
+        # Setup keyboard shortcuts
+        self.setup_key_bindings()
+    
+    def setup_key_bindings(self) -> None:
+        """Setup keyboard shortcuts for summary screen."""
+        self.key_manager.bind(KeyAction.BACK, self.on_back)
     
     def on_back(self):
-        from ui.factory import ViewFactory
-        ViewFactory.show_user_menu(self.master, self.manager)
+        self.transition_to(UserMenuController)
 
 
 class AccountController(BaseViewController):
@@ -541,8 +703,12 @@ class AccountController(BaseViewController):
         )
         username_label.pack(pady=10)
         
+        # Store buttons for navigation
+        self.buttons = []
+        self.current_button_index = 0
+        
         # Action buttons
-        buttons = [
+        button_configs = [
             ("Add Vault", self.on_add_vault, "secondary"),
             ("Change Password", self.on_change_password, "secondary"),
             ("Export data to Excel", self.on_export_excel, "secondary"),
@@ -550,9 +716,52 @@ class AccountController(BaseViewController):
             ("Back", self.on_back, "back")
         ]
         
-        for text, command, btn_type in buttons:
+        for text, command, btn_type in button_configs:
             btn = MenuButton(self.master, text, command, btn_type)
             btn.pack(pady=2)
+            self.buttons.append(btn)
+        
+        # Highlight first button
+        self._highlight_button(0)
+        
+        # Setup keyboard shortcuts
+        self.setup_key_bindings()
+    
+    def setup_key_bindings(self) -> None:
+        """Setup keyboard shortcuts for account screen."""
+        # Up/Down navigation
+        self.master.bind('<Up>', lambda e: self._navigate_buttons(-1))
+        self.master.bind('<Down>', lambda e: self._navigate_buttons(1))
+        self.master.bind('<Return>', lambda e: self._activate_current_button())
+        
+        # Ctrl+Backspace for back
+        self.key_manager.bind(KeyAction.BACK, self.on_back)
+    
+    def _navigate_buttons(self, direction):
+        """Navigate through buttons with arrow keys"""
+        self._unhighlight_button(self.current_button_index)
+        self.current_button_index = (self.current_button_index + direction) % len(self.buttons)
+        self._highlight_button(self.current_button_index)
+    
+    def _highlight_button(self, index):
+        """Highlight a button"""
+        self.buttons[index].configure(
+            fg_color=UIConfig.COLOR_SUCCESS,
+            border_width=2,
+            border_color=UIConfig.COLOR_TEXT_PRIMARY
+        )
+    
+    def _unhighlight_button(self, index):
+        """Remove highlight from button"""
+        button = self.buttons[index]
+        button.configure(
+            fg_color=button.original_fg_color,
+            border_width=0
+        )
+    
+    def _activate_current_button(self):
+        """Activate the currently selected button"""
+        self.buttons[self.current_button_index].invoke()
     
     def on_add_vault(self):
         ask_dialog = ctk.CTkInputDialog(
@@ -582,8 +791,16 @@ class AccountController(BaseViewController):
     
     def on_export_excel(self):
         try:
-            self.manager.export_current_user_db_to_excel()
-            MessageHelper.show_info("Success", "Data exported successfully!")
+            # if didnt work use tkinter instead not ctk
+            file_path = ctk.filedialog.asksaveasfilename(
+                defaultextension=".xlsx",
+                filetypes=[("Excel files", "*.xlsx")]
+            )
+            if file_path:
+                self.manager.export_current_user_db_to_excel(file_path)
+                MessageHelper.show_info("Success", f"Data exported successfully to {file_path}!")
+            else:
+                MessageHelper.show_info("Export Failed", "You didn't choose a path")
         except PermissionError:
             MessageHelper.show_error(
                 "Export Failed",
@@ -593,10 +810,8 @@ class AccountController(BaseViewController):
             MessageHelper.show_error("Export Failed", str(e))
     
     def on_logout(self):
-        from ui.factory import ViewFactory
         self.manager.logout()
-        ViewFactory.show_main_menu(self.master, self.manager)
+        self.transition_to(MainMenuController)
     
     def on_back(self):
-        from ui.factory import ViewFactory
-        ViewFactory.show_user_menu(self.master, self.manager)
+        self.transition_to(UserMenuController)

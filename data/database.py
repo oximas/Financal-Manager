@@ -7,7 +7,6 @@ import sqlite3
 from typing import Dict, List, Optional, Tuple, Callable
 from datetime import datetime
 import pandas as pd
-from tkinter import filedialog
 
 
 class Database:
@@ -731,7 +730,7 @@ class Database:
     
     # ==================== EXPORT OPERATIONS ====================
     
-    def export_to_excel(self, username: str) -> None:
+    def export_to_excel(self, username: str,file_path :str) -> None:
         """
         Export user transactions to an Excel file.
         
@@ -743,16 +742,10 @@ class Database:
         """
         transactions_df = self._get_transactions_dataframe(username)
         
-        file_path = filedialog.asksaveasfilename(
-            defaultextension=".xlsx",
-            filetypes=[("Excel files", "*.xlsx")]
-        )
-        
-        if file_path:
-            with pd.ExcelWriter(file_path) as writer:
-                transactions_df.to_excel(writer, sheet_name='Transactions', index=False)
+        with pd.ExcelWriter(file_path) as writer:
+            transactions_df.to_excel(writer, sheet_name='Transactions', index=False)
 
-            print(f"Transactions exported to {file_path}")
+        print(f"Transactions exported to {file_path}")
     
     def _get_transactions_dataframe(self, username: str) -> pd.DataFrame:
         """

@@ -321,7 +321,7 @@ class Manager:
     
 
     #Exporting and files
-    def export_current_user_db_to_excel(self):
-        self.db.export_to_excel(self._current_username)
+    def export_current_user_db_to_excel(self,file_path: str):
+        self.db.export_to_excel(self._current_username,file_path)
 
     
