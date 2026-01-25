@@ -29,8 +29,14 @@ htmlcov/
 
 # Debugging code
 try.py
+create_tree.py
 
 # Temp files
 *.json
 *.txt
 !requirements.txt
+!structure.txt
+
+#git
+.git*
+.gitignore

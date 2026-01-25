@@ -1,0 +1,36 @@
+Financal Manager
+├── config
+│   ├── __init__.py
+│   ├── settings.py
+├── core
+│   ├── __init__.py
+│   ├── manager.py
+│   ├── result_types.py
+├── CTkDatePicker
+│   ├── __init__.py
+│   ├── ctk_date_picker.py
+├── data
+│   ├── __init__.py
+│   ├── database.py
+├── db
+│   ├── .gitkeep
+│   ├── personal_financial_manager.db
+├── tests
+│   ├── __init__.py
+│   ├── test_database.py
+│   ├── test_manager.py
+├── ui
+│   ├── __init__.py
+│   ├── app.py
+│   ├── components.py
+│   ├── controllers.py
+├── utils
+│   ├── __init__.py
+│   ├── key_bindings.py
+├── .gitignore
+├── create_tree.py
+├── main.py
+├── README.md
+├── requirements.txt
+├── run.txt
+├── structure.txt
