@@ -55,5 +55,4 @@ Financal Manager
 ├── requirements.txt
 ├── run.txt
 ├── structure.txt
-├── tempCodeRunnerFile.py
 ├── try.py

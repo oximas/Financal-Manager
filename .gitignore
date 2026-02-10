@@ -34,6 +34,7 @@ project_files.zip
 create_code_zip.py
 ai_pack.cmd
 project_files
+*.cmd
 
 # Temp files
 *.json
