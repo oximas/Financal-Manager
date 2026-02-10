@@ -2,6 +2,10 @@
 """
 Key binding management for the Finance Manager application.
 Handles keyboard shortcuts with automatic cleanup and centralized configuration.
+
+NOTE: This is now used alongside FocusManager for more intelligent navigation.
+KeyBindingManager handles action bindings (legacy system).
+FocusManager handles focus-aware navigation (new system).
 """
 from typing import Callable, Dict, Optional, List
 import customtkinter as ctk
@@ -31,7 +35,7 @@ class KeyBinding:
         Initialize a key binding.
         
         Args:
-            key_sequence: The key sequence (e.g., '<Return>', '<Control-BackSpace>')
+            key_sequence: The key sequence (e.g., '<Return>', '<Escape>')
             action: The action this binding performs
             callback: The function to call when key is pressed
             description: Human-readable description of the binding
@@ -49,12 +53,15 @@ class KeyBindingManager:
     """
     Manages keyboard shortcuts for the application.
     Handles binding, unbinding, and cleanup of key events.
+    
+    NOTE: This is the legacy system. New code should use FocusManager
+    for navigation keys. This is kept for action bindings like HELP, REFRESH, etc.
     """
     
-    # Default key mappings - can be customized or loaded from config
+    # Default key mappings
     DEFAULT_BINDINGS = {
-        KeyAction.SUBMIT: '<Shift-Return>',
-        KeyAction.BACK: '<Control-BackSpace>',
+        KeyAction.SUBMIT: '<Return>',
+        KeyAction.BACK: '<Escape>',
         KeyAction.CANCEL: '<Escape>',
         KeyAction.REFRESH: '<F5>',
         KeyAction.HELP: '<F1>'
@@ -65,7 +72,7 @@ class KeyBindingManager:
         Initialize the key binding manager.
         
         Args:
-            widget: The root widget to bind keys to (usually the main window, mostly called "root" or "master")
+            widget: The root widget to bind keys to (usually the main window)
         """
         self.widget = widget
         self.active_bindings: Dict[str, KeyBinding] = {}

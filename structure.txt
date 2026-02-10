@@ -4,6 +4,7 @@ Financal Manager
 │   ├── settings.py
 ├── core
 │   ├── __init__.py
+│   ├── bulk_processor.py
 │   ├── manager.py
 │   ├── result_types.py
 ├── CTkDatePicker
@@ -20,17 +21,39 @@ Financal Manager
 │   ├── test_database.py
 │   ├── test_manager.py
 ├── ui
+│   ├── controllers
+│   │   ├── __init__.py
+│   │   ├── account_controller.py
+│   │   ├── base_controller.py
+│   │   ├── bulk_preview_controller.py
+│   │   ├── bulk_transaction_controller.py
+│   │   ├── deposit_controller.py
+│   │   ├── login_controller.py
+│   │   ├── main_menu_controller.py
+│   │   ├── signup_controller.py
+│   │   ├── summary_controller.py
+│   │   ├── transfer_controller.py
+│   │   ├── user_menu_controller.py
+│   │   ├── withdraw_controller.py
 │   ├── __init__.py
 │   ├── app.py
+│   ├── bulk_components.py
 │   ├── components.py
-│   ├── controllers.py
 ├── utils
 │   ├── __init__.py
+│   ├── focus_manager.py
 │   ├── key_bindings.py
 ├── .gitignore
+├── ai_pack.cmd
+├── create_code_zip.py
 ├── create_tree.py
+├── Financial Manager.cmd
+├── financial_manager.db
 ├── main.py
+├── project_files.zip
 ├── README.md
 ├── requirements.txt
 ├── run.txt
 ├── structure.txt
+├── tempCodeRunnerFile.py
+├── try.py

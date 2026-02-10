@@ -5,7 +5,7 @@ Provides editable grid with Excel-like navigation.
 """
 import customtkinter as ctk
 from typing import List, Dict, Callable, Optional, Any
-from CTkTable import CTkTable
+from CTkTable import CTkTable #type:ignore
 from config.settings import UIConfig
 from core.bulk_processor import TransactionRow
 from CTkDatePicker import CTkDatePicker
@@ -15,6 +15,8 @@ class BulkTransactionGrid(ctk.CTkFrame):
     """
     Editable grid for bulk transaction entry with unified column layout.
     All columns are always visible, fields are enabled/disabled based on transaction type.
+    
+    NOW WITH EXCEL-LIKE NAVIGATION!
     """
     
     # Unified column layout (all possible columns)
@@ -38,7 +40,8 @@ class BulkTransactionGrid(ctk.CTkFrame):
         vault_names: List[str],
         category_names: List[str],
         unit_names: List[str],
-        user_names: List[str]
+        user_names: List[str],
+        on_last_row_enter: Callable
     ):
         super().__init__(parent)
         
@@ -50,7 +53,16 @@ class BulkTransactionGrid(ctk.CTkFrame):
         self.row_count = initial_rows
         self.row_widgets: List[Dict[str, Any]] = []
         
+        self.on_last_row_enter = on_last_row_enter
+
+        # Navigation state
+        self.current_row = 0
+        self.current_col = 0
+        
         self._build_ui()
+        
+        # Setup navigation AFTER widgets are created
+        self._setup_navigation()
     
     def _build_ui(self):
         """Build the grid UI"""
@@ -117,6 +129,7 @@ class BulkTransactionGrid(ctk.CTkFrame):
         type_combo.grid(row=0, column=col, padx=2, pady=2)
         widgets["type"] = type_var
         widgets["type_widget"] = type_combo
+        widgets["col_0"] = type_combo  # Store by column index
         col += 1
         
         # Vault
@@ -130,6 +143,7 @@ class BulkTransactionGrid(ctk.CTkFrame):
         vault_combo.grid(row=0, column=col, padx=2, pady=2)
         widgets["vault"] = vault_var
         widgets["vault_widget"] = vault_combo
+        widgets["col_1"] = vault_combo
         col += 1
         
         # Amount
@@ -138,6 +152,7 @@ class BulkTransactionGrid(ctk.CTkFrame):
         amount_entry.grid(row=0, column=col, padx=2, pady=2)
         widgets["amount"] = amount_var
         widgets["amount_widget"] = amount_entry
+        widgets["col_2"] = amount_entry
         col += 1
         
         # Category
@@ -151,6 +166,7 @@ class BulkTransactionGrid(ctk.CTkFrame):
         category_combo.grid(row=0, column=col, padx=2, pady=2)
         widgets["category"] = category_var
         widgets["category_widget"] = category_combo
+        widgets["col_3"] = category_combo
         col += 1
         
         # Description
@@ -159,6 +175,7 @@ class BulkTransactionGrid(ctk.CTkFrame):
         desc_entry.grid(row=0, column=col, padx=2, pady=2)
         widgets["description"] = desc_var
         widgets["description_widget"] = desc_entry
+        widgets["col_4"] = desc_entry
         col += 1
         
         # Quantity
@@ -167,6 +184,7 @@ class BulkTransactionGrid(ctk.CTkFrame):
         qty_entry.grid(row=0, column=col, padx=2, pady=2)
         widgets["quantity"] = qty_var
         widgets["quantity_widget"] = qty_entry
+        widgets["col_5"] = qty_entry
         col += 1
         
         # Unit
@@ -180,6 +198,7 @@ class BulkTransactionGrid(ctk.CTkFrame):
         unit_combo.grid(row=0, column=col, padx=2, pady=2)
         widgets["unit"] = unit_var
         widgets["unit_widget"] = unit_combo
+        widgets["col_6"] = unit_combo
         col += 1
         
         # To User
@@ -193,6 +212,7 @@ class BulkTransactionGrid(ctk.CTkFrame):
         to_user_combo.grid(row=0, column=col, padx=2, pady=2)
         widgets["to_user"] = to_user_var
         widgets["to_user_widget"] = to_user_combo
+        widgets["col_7"] = to_user_combo
         col += 1
         
         # To Vault
@@ -206,6 +226,7 @@ class BulkTransactionGrid(ctk.CTkFrame):
         to_vault_combo.grid(row=0, column=col, padx=2, pady=2)
         widgets["to_vault"] = to_vault_var
         widgets["to_vault_widget"] = to_vault_combo
+        widgets["col_8"] = to_vault_combo
         col += 1
         
         # Date (with date picker)
@@ -221,7 +242,7 @@ class BulkTransactionGrid(ctk.CTkFrame):
         )
         date_entry.pack(side="left", padx=(0, 2))
 
-        # Date picker button
+        # Date picker button with FIXED z-order
         def create_date_picker_callback(var):
             """Create a callback for date picker"""
             def on_date_click():
@@ -229,6 +250,12 @@ class BulkTransactionGrid(ctk.CTkFrame):
                 picker_window = ctk.CTkToplevel(self.master)
                 picker_window.title("Select Date")
                 picker_window.geometry("300x300")
+                
+                # FIX: Force window to front and make modal
+                picker_window.transient(self.master)  # Set parent window
+                picker_window.attributes('-topmost', True)  # Always on top
+                picker_window.grab_set()  # Make modal (block parent)
+                picker_window.focus_force()  # Force focus to this window
                 
                 # Create date picker
                 date_picker = CTkDatePicker(picker_window)
@@ -240,22 +267,35 @@ class BulkTransactionGrid(ctk.CTkFrame):
                     selected = date_picker.get_date()
                     if selected:
                         var.set(selected)
+                    picker_window.grab_release()  # Release modal grab
                     picker_window.destroy()
                 
                 ok_btn = ctk.CTkButton(
                     picker_window,
                     text="OK",
-                    command=on_ok
+                    command=on_ok,
+                    fg_color=UIConfig.COLOR_PRIMARY
                 )
                 ok_btn.pack(pady=10)
                 
                 # Cancel button
+                def on_cancel():
+                    picker_window.grab_release()  # Release modal grab
+                    picker_window.destroy()
+                
                 cancel_btn = ctk.CTkButton(
                     picker_window,
                     text="Cancel",
-                    command=picker_window.destroy
+                    command=on_cancel,
+                    fg_color=UIConfig.COLOR_SECONDARY
                 )
                 cancel_btn.pack(pady=5)
+                
+                # Bind Escape to cancel
+                picker_window.bind('<Escape>', lambda e: on_cancel())
+                
+                # Bind Enter to OK
+                picker_window.bind('<Return>', lambda e: on_ok())
             
             return on_date_click
 
@@ -269,11 +309,213 @@ class BulkTransactionGrid(ctk.CTkFrame):
 
         widgets["date"] = date_var
         widgets["date_widget"] = date_entry
+        widgets["col_9"] = date_entry
         
         # Initially disable all fields (until type is selected)
         self._update_field_states(row_num, "")
         
         return widgets
+    
+    def _setup_navigation(self):
+        """
+        Setup Excel-like navigation for all cells.
+        
+        This is the KEY METHOD that implements navigation!
+        """
+        for row in range(self.row_count):
+            for col in range(len(self.COLUMNS)):
+                widget = self.row_widgets[row].get(f"col_{col}")
+                
+                if not widget:
+                    continue
+                
+                # Determine widget type
+                is_entry = isinstance(widget, ctk.CTkEntry)
+                is_combo = isinstance(widget, ctk.CTkComboBox)
+                is_date_picker = isinstance(widget, CTkDatePicker)
+                
+                if is_entry:
+                    # ENTRY WIDGETS: Boundary navigation
+                    widget.bind('<Up>', lambda e, r=row, c=col:
+                               self._navigate_from(r, c, -1, 0))
+                    widget.bind('<Down>', lambda e, r=row, c=col:
+                               self._navigate_from(r, c, 1, 0))
+                    widget.bind('<Left>', lambda e, r=row, c=col:
+                               self._navigate_left(r, c, e))
+                    widget.bind('<Right>', lambda e, r=row, c=col:
+                               self._navigate_right(r, c, e))
+                    widget.bind('<Return>', lambda e, r=row, c=col:
+                               self._navigate_from(r, c, 1, 0))
+                    widget.bind('<Tab>', lambda e, r=row, c=col:
+                               self._navigate_from(r, c, 0, 1))
+                    
+                    # Track focus for highlighting
+                    widget.bind('<FocusIn>', lambda e, r=row, c=col:
+                               self._on_focus(r, c))
+                
+                elif is_combo:
+                    # COMBOBOX WIDGETS: Always navigate (no cursor movement)
+                    widget.bind('<Up>', lambda e, r=row, c=col:
+                               self._navigate_from(r, c, -1, 0))
+                    widget.bind('<Down>', lambda e, r=row, c=col:
+                               self._navigate_from(r, c, 1, 0))
+                    widget.bind('<Left>', lambda e, r=row, c=col:
+                               self._navigate_from(r, c, 0, -1))
+                    widget.bind('<Right>', lambda e, r=row, c=col:
+                               self._navigate_from(r, c, 0, 1))
+                    widget.bind('<Return>', lambda e, r=row, c=col:
+                               self._navigate_from(r, c, 1, 0))
+                    widget.bind('<Tab>', lambda e, r=row, c=col:
+                               self._navigate_from(r, c, 0, 1))
+                    
+                    # Track focus
+                    widget.bind('<FocusIn>', lambda e, r=row, c=col:
+                               self._on_focus(r, c))
+                elif is_date_picker:
+                    # COMBOBOX WIDGETS: Always navigate (no cursor movement)
+                    widget.bind('<Up>', lambda e, r=row, c=col:
+                            self._navigate_from(r, c, -1, 0))
+                    widget.bind('<Down>', lambda e, r=row, c=col:
+                            self._navigate_from(r, c, 1, 0))
+                    widget.bind('<Left>', lambda e, r=row, c=col:
+                            self._navigate_from(r, c, 0, -1))
+                    widget.bind('<Right>', lambda e, r=row, c=col:
+                            self._navigate_from(r, c, 0, 1))
+                    widget.bind('<Return>', lambda e, r=row, c=col:
+                            widget.open_calendar())
+                    widget.bind('<Tab>', lambda e, r=row, c=col:
+                            self._navigate_from(r, c, 0, 1))
+                    
+                    # Track focus
+                    widget.bind('<FocusIn>', lambda e, r=row, c=col:
+                               self._on_focus(r, c))
+
+    
+    def _on_focus(self, row: int, col: int):
+        """Called when a cell gets focus"""
+        self.current_row = row
+        self.current_col = col
+        
+        # Highlight current cell (visual feedback)
+        self._highlight_cell(row, col)
+    
+    def _highlight_cell(self, row: int, col: int):
+        """Highlight the focused cell"""
+        # Remove highlight from all cells
+        for r in range(self.row_count):
+            for c in range(len(self.COLUMNS)):
+                widget = self.row_widgets[r].get(f"col_{c}")
+                if widget:
+                    try:
+                        widget.configure(border_color="#565B5E", border_width=1)
+                    except:
+                        pass
+        
+        # Highlight current cell
+        widget = self.row_widgets[row].get(f"col_{col}")
+        if widget:
+            try:
+                widget.configure(border_color="#00FF00", border_width=2)
+            except:
+                pass
+    
+    def _navigate_from(self, from_row: int, from_col: int, 
+                      row_delta: int, col_delta: int):
+        """
+        Navigate from a specific cell.
+        
+        Args:
+            from_row: Current row
+            from_col: Current column
+            row_delta: Row change (-1 up, +1 down)
+            col_delta: Col change (-1 left, +1 right)
+        """
+        # Calculate new position
+        new_row = from_row + row_delta
+        new_col = from_col + col_delta
+        
+        # Wrap around / clamp
+        if new_row < 0:
+            new_row = self.row_count - 1
+        elif new_row >= self.row_count:
+            self.on_last_row_enter()
+        
+        if new_col < 0:
+            new_col = len(self.COLUMNS) - 1
+        elif new_col >= len(self.COLUMNS):
+            new_col = 0
+        
+        # Get the target widget
+        target_widget = self.row_widgets[new_row].get(f"col_{new_col}")
+        
+        if not target_widget:
+            return "break"
+        
+        # Check if widget is enabled
+        try:
+            if target_widget.cget("state") == "disabled":
+                # Skip disabled widgets, try next
+                return self._navigate_from(new_row, new_col, row_delta, col_delta)
+        except:
+            pass
+        
+        # Focus the new cell
+        target_widget.focus_set()
+        
+        # Position cursor for entries
+        if isinstance(target_widget, ctk.CTkEntry):
+            try:
+                if col_delta > 0:  # Moving right
+                    target_widget.icursor(0)
+                elif col_delta < 0:  # Moving left
+                    target_widget.icursor('end')
+                else:  # Up/down
+                    target_widget.icursor('end')
+            except:
+                pass
+        
+        return "break"
+    
+    def _navigate_left(self, row: int, col: int, event):
+        """Navigate left - only if cursor is at start of text"""
+        widget = self.row_widgets[row].get(f"col_{col}")
+        
+        if not isinstance(widget, ctk.CTkEntry):
+            return self._navigate_from(row, col, 0, -1)
+        
+        try:
+            # Get cursor position
+            cursor_pos = widget.index('insert')
+            
+            # Only navigate if at start
+            if cursor_pos == 0:
+                return self._navigate_from(row, col, 0, -1)
+            else:
+                # Let cursor move normally
+                return None
+        except:
+            return None
+    
+    def _navigate_right(self, row: int, col: int, event):
+        """Navigate right - only if cursor is at end of text"""
+        widget = self.row_widgets[row].get(f"col_{col}")
+        
+        if not isinstance(widget, ctk.CTkEntry):
+            return self._navigate_from(row, col, 0, 1)
+        
+        try:
+            # Get cursor position and text length
+            cursor_pos = widget.index('insert')
+            text_length = len(widget.get())
+            
+            # Only navigate if at end
+            if cursor_pos == text_length:
+                return self._navigate_from(row, col, 0, 1)
+            else:
+                # Let cursor move normally
+                return None
+        except:
+            return None
     
     def _on_type_change(self, row_num: int, value: str):
         """Handle transaction type change for a row"""
@@ -357,6 +599,9 @@ class BulkTransactionGrid(ctk.CTkFrame):
         self._build_header()
         self._build_rows()
         
+        # Re-setup navigation after rebuilding
+        self._setup_navigation()
+        
         # Restore data
         for i, data in enumerate(existing_data):
             if i < len(self.row_widgets):
@@ -375,6 +620,9 @@ class BulkTransactionGrid(ctk.CTkFrame):
         
         self._build_header()
         self._build_rows()
+        
+        # Re-setup navigation after rebuilding
+        self._setup_navigation()
         
         # Restore data (up to min of old/new count)
         for i, data in enumerate(existing_data):

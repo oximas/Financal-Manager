@@ -30,6 +30,10 @@ htmlcov/
 # Debugging code
 try.py
 create_tree.py
+project_files.zip
+create_code_zip.py
+ai_pack.cmd
+project_files
 
 # Temp files
 *.json
