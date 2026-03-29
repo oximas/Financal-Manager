@@ -35,6 +35,9 @@ create_code_zip.py
 ai_pack.cmd
 project_files
 *.cmd
+migrate.py
+*.cm
+*.rar
 
 # Temp files
 *.json
@@ -45,3 +48,11 @@ project_files
 #git
 .git*
 .gitignore
+
+#migration code
+alembic
+alembic*
+seed_from_sqlite.py
+
+#secrets
+.env
