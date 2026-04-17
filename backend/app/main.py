@@ -8,6 +8,7 @@ from app.routers.auth_router import router as auth_router
 from app.routers.vaults import router as vaults_router
 from app.routers.transactions import router as transactions_router
 from app.routers.bulk import router as bulk_router
+from app.routers.export import router as export_router
 from app.routers.misc_routers import (
     categories_router,
     units_router,
@@ -46,6 +47,7 @@ app.include_router(dashboard_router,    prefix=API_PREFIX)
 app.include_router(vaults_router,       prefix=API_PREFIX)
 app.include_router(transactions_router, prefix=API_PREFIX)
 app.include_router(bulk_router,         prefix=API_PREFIX)
+app.include_router(export_router,       prefix=API_PREFIX)
 app.include_router(categories_router,   prefix=API_PREFIX)
 app.include_router(units_router,        prefix=API_PREFIX)
 app.include_router(tags_router,         prefix=API_PREFIX)

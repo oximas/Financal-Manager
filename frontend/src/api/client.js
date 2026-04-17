@@ -25,4 +25,35 @@ api.interceptors.response.use(
   }
 )
 
+/**
+ * Trigger a CSV download for the current user's transactions.
+ * @param {string|null} dateFrom  - "YYYY-MM-DD" or null for no lower bound
+ * @param {string|null} dateTo    - "YYYY-MM-DD" or null for no upper bound
+ */
+export async function exportCSV(dateFrom = null, dateTo = null) {
+  const params = {}
+  if (dateFrom) params.date_from = dateFrom
+  if (dateTo)   params.date_to   = dateTo
+
+  const response = await api.get('/export/csv', {
+    params,
+    responseType: 'blob',   // tell axios to treat the response as a raw file
+  })
+
+  // Pull filename from Content-Disposition header if present, else use a fallback
+  const disposition = response.headers['content-disposition'] || ''
+  const match = disposition.match(/filename="(.+?)"/)
+  const filename = match ? match[1] : `transactions_${new Date().toISOString().slice(0, 10)}.csv`
+
+  // Create a temporary <a> and click it to trigger the browser download
+  const url = URL.createObjectURL(new Blob([response.data], { type: 'text/csv' }))
+  const a   = document.createElement('a')
+  a.href     = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
 export default api

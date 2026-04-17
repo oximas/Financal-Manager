@@ -1,21 +1,17 @@
 // frontend/src/pages/SettingsPage.jsx
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import api from '../api/client'
+import api, { exportCSV } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import { PageLoader, useToast, Spinner } from '../components/ui'
 import VaultManager from '../components/VaultManager'
 
 // ── Reusable inline-edit chip ──────────────────────────────────────────────
-// Shows: [name chip] with ✏ and 🗑 on hover/tap.
-// Clicking ✏ turns it into an input + Save/Cancel.
-// Clicking 🗑 asks "Sure?" inline before deleting.
 function EditableChip({ name, managing, onRename, onDelete }) {
   const [mode, setMode]   = useState('view')
   const [value, setValue] = useState(name)
   const [busy, setBusy]   = useState(false)
 
-  // If manage mode is turned off while a chip is mid-action, reset it
   useEffect(() => {
     if (!managing) { setMode('view'); setValue(name) }
   }, [managing])
@@ -31,7 +27,6 @@ function EditableChip({ name, managing, onRename, onDelete }) {
   async function doDelete() {
     setBusy(true)
     await onDelete()
-    // Component unmounts on success — no need to reset
   }
 
   if (mode === 'edit') {
@@ -73,21 +68,12 @@ function EditableChip({ name, managing, onRename, onDelete }) {
     )
   }
 
-  // view mode
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
       <span style={chipBaseStyle}>{name}</span>
       {managing && <>
-        <button
-          onClick={() => { setMode('edit'); setValue(name) }}
-          style={chipIconStyle}
-          title="Rename"
-        >✏</button>
-        <button
-          onClick={() => setMode('confirm-delete')}
-          style={{ ...chipIconStyle, color: 'var(--red)' }}
-          title="Delete"
-        >🗑</button>
+        <button onClick={() => { setMode('edit'); setValue(name) }} style={chipIconStyle} title="Rename">✏</button>
+        <button onClick={() => setMode('confirm-delete')} style={{ ...chipIconStyle, color: 'var(--red)' }} title="Delete">🗑</button>
       </>}
     </span>
   )
@@ -111,11 +97,11 @@ function chipActionStyle(color) {
   }
 }
 
-// ── Section component — reused for categories, units, tags ─────────────────
+// ── Section component ──────────────────────────────────────────────────────
 function ManagedSection({ title, items, idKey, nameKey, addPlaceholder, onAdd, onRename, onDelete }) {
   const [newName, setNewName] = useState('')
   const [saving, setSaving]   = useState(false)
-  const [managing, setManaging] = useState(false)  // controls edit/delete visibility
+  const [managing, setManaging] = useState(false)
   const toast = useToast()
 
   async function handleAdd(e) {
@@ -134,7 +120,6 @@ function ManagedSection({ title, items, idKey, nameKey, addPlaceholder, onAdd, o
 
   return (
     <div className="card" style={{ marginBottom: '1.25rem' }}>
-      {/* Section header with Manage toggle */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
         <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text2)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
           {title}
@@ -193,6 +178,107 @@ function ManagedSection({ title, items, idKey, nameKey, addPlaceholder, onAdd, o
   )
 }
 
+// ── Export Data section ────────────────────────────────────────────────────
+function ExportSection() {
+  const toast = useToast()
+
+  // "all" | "range"
+  const [mode, setMode]       = useState('all')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo]     = useState('')
+  const [busy, setBusy]         = useState(false)
+
+  async function handleExport() {
+    setBusy(true)
+    try {
+      const from = mode === 'range' ? dateFrom || null : null
+      const to   = mode === 'range' ? dateTo   || null : null
+      await exportCSV(from, to)
+      toast.success('Download started')
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Export failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const rangeInvalid = mode === 'range' && dateFrom && dateTo && dateFrom > dateTo
+
+  return (
+    <div className="card" style={{ marginBottom: '1.25rem' }}>
+      <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text2)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
+        Export Data
+      </div>
+
+      {/* Mode toggle */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+        {['all', 'range'].map(m => (
+          <button
+            key={m}
+            onClick={() => setMode(m)}
+            style={{
+              background: mode === m ? 'var(--green-dim)' : 'none',
+              border: `1px solid ${mode === m ? 'var(--green)' : 'var(--border)'}`,
+              borderRadius: 'var(--radius)', padding: '0.25rem 0.75rem',
+              color: mode === m ? 'var(--green)' : 'var(--text3)',
+              fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
+              fontFamily: 'var(--font-ui)', transition: 'all 0.15s',
+            }}
+          >
+            {m === 'all' ? 'All time' : 'Date range'}
+          </button>
+        ))}
+      </div>
+
+      {/* Date inputs — only visible in range mode */}
+      {mode === 'range' && (
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1, minWidth: '130px' }}>
+            <label style={{ fontSize: '0.7rem', color: 'var(--text3)' }}>From</label>
+            <input
+              type="date"
+              className="input"
+              value={dateFrom}
+              onChange={e => setDateFrom(e.target.value)}
+              style={{ fontSize: '0.8rem' }}
+            />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1, minWidth: '130px' }}>
+            <label style={{ fontSize: '0.7rem', color: 'var(--text3)' }}>To</label>
+            <input
+              type="date"
+              className="input"
+              value={dateTo}
+              onChange={e => setDateTo(e.target.value)}
+              style={{ fontSize: '0.8rem' }}
+            />
+          </div>
+        </div>
+      )}
+
+      {rangeInvalid && (
+        <div style={{ fontSize: '0.75rem', color: 'var(--red)', marginBottom: '0.5rem' }}>
+          "From" date must be before "To" date.
+        </div>
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ fontSize: '0.75rem', color: 'var(--text3)' }}>
+          Format: CSV · All transactions
+        </div>
+        <button
+          className="btn btn-ghost btn-sm"
+          onClick={handleExport}
+          disabled={busy || rangeInvalid}
+          style={{ minWidth: '90px' }}
+        >
+          {busy ? <Spinner size={14} /> : '↓ Download'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────
 export default function SettingsPage() {
   const [categories, setCategories] = useState([])
@@ -220,7 +306,6 @@ export default function SettingsPage() {
 
   useEffect(() => { load() }, [load])
 
-  // ── Category handlers ────────────────────────────────────────────────────
   async function addCategory(name) {
     const res = await api.post('/categories', { category_name: name })
     setCategories(p => [...p, res.data].sort((a, b) => a.category_name.localeCompare(b.category_name)))
@@ -237,7 +322,6 @@ export default function SettingsPage() {
     toast.success('Category deleted')
   }
 
-  // ── Unit handlers ────────────────────────────────────────────────────────
   async function addUnit(name) {
     const res = await api.post('/units', { unit_name: name })
     setUnits(p => [...p, res.data].sort((a, b) => a.unit_name.localeCompare(b.unit_name)))
@@ -254,7 +338,6 @@ export default function SettingsPage() {
     toast.success('Unit deleted')
   }
 
-  // ── Tag handlers ─────────────────────────────────────────────────────────
   async function addTag(name) {
     const res = await api.post('/tags', { tag_name: name })
     setTags(p => [...p, res.data].sort((a, b) => a.tag_name.localeCompare(b.tag_name)))
@@ -296,6 +379,9 @@ export default function SettingsPage() {
           </button>
         </div>
       </div>
+
+      {/* Export */}
+      <ExportSection />
 
       {/* Categories */}
       <ManagedSection
@@ -339,11 +425,7 @@ export default function SettingsPage() {
           <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text2)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             Vaults
           </div>
-          <button
-            className="btn btn-ghost btn-sm"
-            onClick={() => setShowVaultMgr(true)}
-            style={{ fontSize: '0.75rem' }}
-          >
+          <button className="btn btn-ghost btn-sm" onClick={() => setShowVaultMgr(true)} style={{ fontSize: '0.75rem' }}>
             Manage
           </button>
         </div>
@@ -358,10 +440,7 @@ export default function SettingsPage() {
       </div>
 
       {showVaultMgr && (
-        <VaultManager
-          onClose={() => setShowVaultMgr(false)}
-          onChanged={() => {}}
-        />
+        <VaultManager onClose={() => setShowVaultMgr(false)} onChanged={() => {}} />
       )}
     </div>
   )

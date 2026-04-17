@@ -41,14 +41,19 @@ echo.
 
 :: ── Step 3: Start containers in background ────────────────────────────────
 echo  [3/4] Starting PFM containers...
-docker-compose up -d --build >NUL 2>&1
+docker-compose up -d >NUL 2>&1
 if errorlevel 1 (
+    echo        First run detected - building images (this may take a few minutes^)...
     echo.
-    echo  ERROR: Failed to start containers.
-    echo  Try running: docker-compose up --build
-    echo  in this folder to see the error.
-    pause
-    exit /b 1
+    docker-compose up -d --build
+    if errorlevel 1 (
+        echo.
+        echo  ERROR: Failed to start containers.
+        echo  Try running: docker-compose up --build
+        echo  in this folder to see the error.
+        pause
+        exit /b 1
+    )
 )
 echo        Containers started!
 
